@@ -19,7 +19,7 @@ public class ReportType {
     private String type;
 
     @Column(nullable = false)
-    private String explain;
+    private String explanation;
 
 }
 
