@@ -24,7 +24,7 @@ public class ReportHistoryDto {
                 .userId(reportHistory.getUserId())
                 .transactionFeedId(reportHistory.getTransactionFeedId())
                 .reason(reportHistory.getReason())
-                .status(reportHistory.getStatus())
+                .status(reportHistory.getStatus().getDescription())
                 .createdAt(reportHistory.getCreatedAt())
                 .build();
     }

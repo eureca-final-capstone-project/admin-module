@@ -1,5 +1,6 @@
 package eureca.capstone.project.admin.controller;
 
+import eureca.capstone.project.admin.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.dto.response.ReportCountDto;
 import eureca.capstone.project.admin.dto.response.ReportHistoryDto;
 import eureca.capstone.project.admin.dto.response.RestrictionDto;
@@ -8,9 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 @RestController
@@ -25,12 +24,20 @@ public class ReportController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<Page<ReportHistoryDto>> getReportHistoryList(Pageable pageable) {
-        return ResponseEntity.ok(reportService.getReportHistoryList(pageable));
+    public ResponseEntity<Page<ReportHistoryDto>> getReportHistoryList(@RequestParam(required = false) String status, Pageable pageable) {
+        return ResponseEntity.ok(reportService.getReportHistoryList(status, pageable));
     }
 
     @GetMapping("/restrictions")
     public ResponseEntity<Page<RestrictionDto>> getRestrictionList(Pageable pageable) {
         return ResponseEntity.ok(reportService.getRestrictionList(pageable));
+    }
+
+    @PatchMapping("/history/{reportHistoryId}/process")
+    public ResponseEntity<Void> processReportByAdmin(
+            @PathVariable("reportHistoryId") Long reportHistoryId,
+            @RequestBody ProcessReportDto request) {
+        reportService.processReportByAdmin(reportHistoryId, request);
+        return ResponseEntity.ok().build();
     }
 }

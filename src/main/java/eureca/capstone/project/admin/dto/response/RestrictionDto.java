@@ -24,7 +24,7 @@ public class RestrictionDto {
                 .reportType(restrictionTarget.getReportType().getType())
                 .restrictionContent(restrictionTarget.getRestrictionType().getContent())
                 .restrictionDuration(restrictionTarget.getRestrictionType().getDuration())
-                .status(restrictionTarget.getStatus())
+                .status(restrictionTarget.getStatus().getDescription())
                 .expiresAt(restrictionTarget.getExpiresAt())
                 .build();
     }
