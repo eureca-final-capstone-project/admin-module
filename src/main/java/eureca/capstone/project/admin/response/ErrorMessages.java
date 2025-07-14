@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 public enum ErrorMessages {
     // Common
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
+    INVALID_ENUM_VALUE(HttpStatus.BAD_REQUEST,"유효하지 않은 요청 값입니다." ),
+
 
     // Report
     REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 내역을 찾을 수 없습니다."),

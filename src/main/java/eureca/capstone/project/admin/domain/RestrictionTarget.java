@@ -22,11 +22,11 @@ public class RestrictionTarget {
     @Column(nullable = false)
     private Long userId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "report_type_id")
     private ReportType reportType;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "restriction_type_id")
     private RestrictionType restrictionType;
 

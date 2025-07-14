@@ -20,7 +20,7 @@ public class ReportHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long reportHistoryId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "report_type_id")
     private ReportType reportType;
 

@@ -61,11 +61,11 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<ReportHistoryDto> getReportHistoryList(String status, Pageable pageable) {
-        if (status == null || status.isBlank()) {
+    public Page<ReportHistoryDto> getReportHistoryList(ReportHistoryStatus status, Pageable pageable) {
+        if (status == null) {
             return reportHistoryRepository.findAll(pageable).map(ReportHistoryDto::from);
         } else {
-            return reportHistoryRepository.findByStatus(ReportHistoryStatus.from(status), pageable).map(ReportHistoryDto::from);
+            return reportHistoryRepository.findByStatus(status, pageable).map(ReportHistoryDto::from);
         }
     }
 
