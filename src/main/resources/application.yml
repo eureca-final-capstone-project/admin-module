@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: admin
+  config:
+    import: optional:file:.env[.properties]
+  profiles:
+    active: local-test
+  datasource:
+    url: jdbc:mysql://${ADMIN_HOST}:${ADMIN_PORT}/admin_db
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${ADMIN_USERNAME}
+    password: ${ADMIN_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  ai:
+    openai:
+      api-key: ${AI_API_KEY}
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai
+      chat:
+        completions-path: /chat/completions
+        options:
+          model: gemini-2.0-flash
+
+transaction-module:
+  url: null
+
+springdoc:
+  packages-to-scan: eureca.capstone.project.admin.controller
+  default-consumes-media-type: application/json;charset=UTF-8
+  default-produces-media-type: application/json;charset=UTF-8
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    display-request-duration: true
+    operations-sorter: alpha
