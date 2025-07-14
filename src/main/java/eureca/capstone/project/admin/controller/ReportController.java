@@ -38,8 +38,10 @@ public class ReportController {
     }
 
     @GetMapping("/reports/restrictions")
-    public ResponseEntity<ApiResponse<Page<RestrictionDto>>> getRestrictionList(Pageable pageable) {
-        Page<RestrictionDto> data = reportService.getRestrictionList(pageable);
+    public ResponseEntity<ApiResponse<Page<RestrictionDto>>> getRestrictionList(
+            @RequestParam(required = false) String status,
+            Pageable pageable) {
+        Page<RestrictionDto> data = reportService.getRestrictionList(status, pageable);
         return ApiResponse.success(SuccessMessages.GET_RESTRICTION_LIST_SUCCESS, data);
     }
 

@@ -15,7 +15,7 @@ public interface ReportService {
 
     ReportCountDto getReportCounts();
     Page<ReportHistoryDto> getReportHistoryList(String status, Pageable pageable);
-    Page<RestrictionDto> getRestrictionList(Pageable pageable);
+    Page<RestrictionDto> getRestrictionList(String status, Pageable pageable);
     void processReportByAdmin(Long reportHistoryId, ProcessReportDto request);
     void createReportAndProcessWithAI(Long userId, Long transactionFeedId, Long reportTypeId, String reason);
     RestrictExpiredResponseDto getRestrictExpiredList();

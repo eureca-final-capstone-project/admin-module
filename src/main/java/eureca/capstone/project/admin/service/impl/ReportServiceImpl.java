@@ -24,6 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
@@ -48,11 +49,11 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public ReportCountDto getReportCounts() {
-        LocalDateTime startOfToday = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
 
         // 오늘 신고 건수 및 전체 신고 건수 조회
-        long todayCount = reportHistoryRepository.countByCreatedAtAfter(startOfToday);
-        long totalCount = reportHistoryRepository.count();
+        Long todayCount = reportHistoryRepository.countByCreatedAtAfter(startOfToday);
+        Long totalCount = reportHistoryRepository.count();
 
         return ReportCountDto.builder()
                 .todayReportCount(todayCount)
@@ -62,7 +63,7 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public Page<ReportHistoryDto> getReportHistoryList(String status, Pageable pageable) {
-        if (status == null || status.isBlank()) {
+        if (!StringUtils.hasText(status)) {
             return reportHistoryRepository.findAll(pageable).map(ReportHistoryDto::from);
         } else {
             return reportHistoryRepository.findByStatus(ReportHistoryStatus.from(status), pageable).map(ReportHistoryDto::from);
@@ -70,9 +71,12 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<RestrictionDto> getRestrictionList(Pageable pageable) {
-        return restrictionTargetRepository.findAll(pageable)
-                .map(RestrictionDto::from);
+    public Page<RestrictionDto> getRestrictionList(String status, Pageable pageable) {
+        if (!StringUtils.hasText(status)) {
+            return restrictionTargetRepository.findAll(pageable).map(RestrictionDto::from);
+        } else {
+            return restrictionTargetRepository.findByStatus(RestrictionTargetStatus.from(status), pageable).map(RestrictionDto::from);
+        }
     }
 
     @Override

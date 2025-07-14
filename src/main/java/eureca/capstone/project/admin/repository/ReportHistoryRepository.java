@@ -17,7 +17,7 @@ public interface ReportHistoryRepository extends JpaRepository<ReportHistory, Lo
     @Query("SELECT COUNT(rh) FROM ReportHistory rh WHERE rh.createdAt >= :startOfDay")
     Long countByCreatedAtAfter(@Param("startOfDay") LocalDateTime startOfDay);
 
-    long countByUserIdAndReportTypeAndStatusIn(Long userId, ReportType reportType, List<ReportHistoryStatus> statuses);
+    Long countByUserIdAndReportTypeAndStatusIn(Long userId, ReportType reportType, List<ReportHistoryStatus> statuses);
 
     Page<ReportHistory> findByStatus(ReportHistoryStatus status, Pageable pageable);
 
