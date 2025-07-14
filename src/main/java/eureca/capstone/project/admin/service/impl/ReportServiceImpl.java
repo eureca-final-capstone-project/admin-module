@@ -14,7 +14,6 @@ import eureca.capstone.project.admin.repository.ReportHistoryRepository;
 import eureca.capstone.project.admin.repository.ReportTypeRepository;
 import eureca.capstone.project.admin.repository.RestrictionTargetRepository;
 import eureca.capstone.project.admin.repository.RestrictionTypeRepository;
-import eureca.capstone.project.admin.response.ErrorMessages;
 import eureca.capstone.project.admin.service.ReportService;
 import eureca.capstone.project.admin.service.external.AIReviewService;
 import eureca.capstone.project.admin.service.external.TransactionModuleService;
@@ -24,7 +23,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
@@ -53,7 +51,7 @@ public class ReportServiceImpl implements ReportService {
 
         // 오늘 신고 건수 및 전체 신고 건수 조회
         Long todayCount = reportHistoryRepository.countByCreatedAtAfter(startOfToday);
-        Long totalCount = reportHistoryRepository.count();
+        long totalCount = reportHistoryRepository.count();
 
         return ReportCountDto.builder()
                 .todayReportCount(todayCount)
@@ -62,20 +60,20 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<ReportHistoryDto> getReportHistoryList(String status, Pageable pageable) {
-        if (!StringUtils.hasText(status)) {
+    public Page<ReportHistoryDto> getReportHistoryList(ReportHistoryStatus status, Pageable pageable) {
+        if (status == null) {
             return reportHistoryRepository.findAll(pageable).map(ReportHistoryDto::from);
         } else {
-            return reportHistoryRepository.findByStatus(ReportHistoryStatus.from(status), pageable).map(ReportHistoryDto::from);
+            return reportHistoryRepository.findByStatus(status, pageable).map(ReportHistoryDto::from);
         }
     }
 
     @Override
-    public Page<RestrictionDto> getRestrictionList(String status, Pageable pageable) {
-        if (!StringUtils.hasText(status)) {
+    public Page<RestrictionDto> getRestrictionList(RestrictionTargetStatus status, Pageable pageable) {
+        if (status == null) {
             return restrictionTargetRepository.findAll(pageable).map(RestrictionDto::from);
         } else {
-            return restrictionTargetRepository.findByStatus(RestrictionTargetStatus.from(status), pageable).map(RestrictionDto::from);
+            return restrictionTargetRepository.findByStatus(status, pageable).map(RestrictionDto::from);
         }
     }
 
@@ -86,7 +84,6 @@ public class ReportServiceImpl implements ReportService {
                 .orElseThrow(ReportNotFoundException::new);
 
         List<ReportHistoryStatus> processableStatus = List.of(ReportHistoryStatus.PENDING, ReportHistoryStatus.AI_REJECTED);
-
         if (!processableStatus.contains(reportHistory.getStatus())) {
             throw new AlreadyProcessedReportException();
         }
@@ -174,8 +171,10 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private void checkAndApplyRestriction(Long userId, ReportType reportType) {
+        // 승인된 신고(AI, 관리자) 목록
         List<ReportHistoryStatus> acceptedStatuses = List.of(ReportHistoryStatus.AI_ACCEPTED, ReportHistoryStatus.ADMIN_ACCEPTED);
 
+        // 현재 승인된 건을 포함한 누적 위반 횟수 계산
         long violationCount = reportHistoryRepository.countByUserIdAndReportTypeAndStatusIn(userId, reportType, acceptedStatuses);
         RestrictionType restrictionType = null;
 
