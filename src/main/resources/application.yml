@@ -25,3 +25,7 @@ spring:
 
 transaction-module:
   url: null
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
