@@ -86,6 +86,7 @@ public class ReportServiceImpl implements ReportService {
                 .orElseThrow(ReportNotFoundException::new);
 
         List<ReportHistoryStatus> processableStatus = List.of(ReportHistoryStatus.PENDING, ReportHistoryStatus.AI_REJECTED);
+
         if (!processableStatus.contains(reportHistory.getStatus())) {
             throw new AlreadyProcessedReportException();
         }
@@ -173,34 +174,39 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private void checkAndApplyRestriction(Long userId, ReportType reportType) {
-        // 승인된 신고(AI, 관리자) 목록
         List<ReportHistoryStatus> acceptedStatuses = List.of(ReportHistoryStatus.AI_ACCEPTED, ReportHistoryStatus.ADMIN_ACCEPTED);
 
-        // 현재 승인된 건을 포함한 누적 위반 횟수 계산
         long violationCount = reportHistoryRepository.countByUserIdAndReportTypeAndStatusIn(userId, reportType, acceptedStatuses);
+        RestrictionType restrictionType = null;
 
-        // 제재 규칙 적용
-        switch (reportType.getType()) {
-            case "음란 내용 포함":
-                // 즉시 영구 정지
-                applyRestriction(userId, reportType, "영구 제한", null);
+        switch (reportType.getReportTypeId().intValue()) {
+            case 3: // 음란 내용 포함
+                restrictionType = restrictionTypeRepository.findById(2L)
+                                .orElseThrow(ReportTypeNotFoundException::new);
+                applyRestriction(userId, reportType, restrictionType.getContent(), null);
                 break;
 
-            case "욕설 및 비속어 포함":
+            case 1: // 욕설 및 비속어 포함
                 if (violationCount >= 5) {
-                    applyRestriction(userId, reportType, "게시글 작성 제한", 7);
+                    restrictionType = restrictionTypeRepository.findById(1L)
+                            .orElseThrow(ReportTypeNotFoundException::new);
+                    applyRestriction(userId, reportType, restrictionType.getContent(), restrictionType.getDuration());
                 }
                 break;
 
-            case "주제 불일치": // '주제 불일치' 유형으로 가정
+            case 2: // 주제 관련 없음
                 if (violationCount >= 5) {
-                    applyRestriction(userId, reportType, "게시글 작성 제한(1일)", 1);
+                    restrictionType = restrictionTypeRepository.findById(4L)
+                            .orElseThrow(ReportTypeNotFoundException::new);
+                    applyRestriction(userId, reportType, restrictionType.getContent(), restrictionType.getDuration());
                 }
                 break;
 
-            case "허위 신고":
+            case 4: // 허위신고
                 if (violationCount >= 3) {
-                    applyRestriction(userId, reportType, "신고 제한", 30);
+                    restrictionType = restrictionTypeRepository.findById(3L)
+                            .orElseThrow(ReportTypeNotFoundException::new);
+                    applyRestriction(userId, reportType, restrictionType.getContent(), restrictionType.getDuration());
                 }
                 break;
         }
