@@ -6,11 +6,11 @@ import eureca.capstone.project.admin.response.ErrorMessages;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Report Exceptions
     @ExceptionHandler(ReportNotFoundException.class)
     protected ResponseEntity<ApiResponse<?>> handleReportNotFoundException(ReportNotFoundException e) {
         return handleExceptionInternal(e.getErrorCode());
@@ -31,19 +31,31 @@ public class GlobalExceptionHandler {
         return handleExceptionInternal(e.getErrorCode());
     }
 
-    // Restriction Exceptions
     @ExceptionHandler(RestrictionTypeNotFoundException.class)
     protected ResponseEntity<ApiResponse<?>> handleRestrictionTypeNotFoundException(RestrictionTypeNotFoundException e) {
         return handleExceptionInternal(e.getErrorCode());
     }
 
-    // External Service Exceptions
     @ExceptionHandler(AiReviewException.class)
     protected ResponseEntity<ApiResponse<?>> handleAiReviewException(AiReviewException e) {
         return handleExceptionInternal(e.getErrorCode());
     }
 
-    // 공통 처리 메서드
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    protected ResponseEntity<ApiResponse<?>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        String paramName = e.getName();
+        String value = e.getValue() != null ? e.getValue().toString() : "null";
+        String message = String.format("'%s' 파라미터에 잘못된 값이 들어왔습니다: '%s'", paramName, value);
+
+        return ResponseEntity
+                .status(ErrorMessages.INVALID_ENUM_VALUE.getHttpStatus())
+                .body(ApiResponse.fail(
+                        ErrorMessages.INVALID_ENUM_VALUE.getHttpStatus().value(),
+                        message
+                ));
+    }
+
+
     private ResponseEntity<ApiResponse<?>> handleExceptionInternal(ErrorMessages errorCode) {
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
