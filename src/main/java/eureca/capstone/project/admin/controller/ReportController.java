@@ -1,5 +1,6 @@
 package eureca.capstone.project.admin.controller;
 
+import eureca.capstone.project.admin.dto.request.CreateReportRequestDto;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.dto.response.ReportCountDto;
 import eureca.capstone.project.admin.dto.response.ReportHistoryDto;
@@ -33,6 +34,18 @@ public class ReportController {
         return ResponseEntity.ok(reportService.getRestrictionList(pageable));
     }
 
+    @PostMapping
+    public ResponseEntity<Void> createReport(@RequestBody CreateReportRequestDto request) {
+        reportService.createReportAndProcessWithAI(
+                request.getUserId(),
+                request.getTransactionFeedId(),
+                request.getReportTypeId(),
+                request.getReason()
+        );
+        return ResponseEntity.accepted().build();
+    }
+
+    // TODO: 어드민만 가능하도록 권한 설정해야함
     @PatchMapping("/history/{reportHistoryId}/process")
     public ResponseEntity<Void> processReportByAdmin(
             @PathVariable("reportHistoryId") Long reportHistoryId,

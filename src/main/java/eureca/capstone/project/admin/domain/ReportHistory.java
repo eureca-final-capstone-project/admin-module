@@ -43,12 +43,13 @@ public class ReportHistory {
     private boolean isModerated = false;
 
     @Builder
-    public ReportHistory(ReportType reportType, Long userId, Long transactionFeedId, String reason, ReportHistoryStatus status) {
+    public ReportHistory(ReportType reportType, Long userId, Long transactionFeedId, String reason, ReportHistoryStatus status, Boolean isModerated) {
         this.reportType = reportType;
         this.userId = userId;
         this.transactionFeedId = transactionFeedId;
         this.reason = reason;
         this.status = status;
+        this.isModerated = isModerated;
         this.createdAt = LocalDateTime.now();
     }
 
