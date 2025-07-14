@@ -1,7 +1,7 @@
 package eureca.capstone.project.admin.exception;
 
-import eureca.capstone.project.admin.response.ErrorMessages;
+import eureca.capstone.project.admin.response.ErrorCode;
 
 public class ReportTypeNotFoundException extends CustomException {
-    public ReportTypeNotFoundException() { super(ErrorMessages.REPORT_TYPE_NOT_FOUND); }
+    public ReportTypeNotFoundException() { super(ErrorCode.REPORT_TYPE_NOT_FOUND); }
 }

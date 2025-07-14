@@ -1,64 +1,58 @@
 package eureca.capstone.project.admin.exception.handler;
 
 import eureca.capstone.project.admin.exception.*;
-import eureca.capstone.project.admin.response.ApiResponse;
-import eureca.capstone.project.admin.response.ErrorMessages;
-import org.springframework.http.ResponseEntity;
+import eureca.capstone.project.admin.response.BaseResponseDto;
+import eureca.capstone.project.admin.response.ErrorCode;
+import eureca.capstone.project.admin.response.ErrorResponseDto;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ReportNotFoundException.class)
-    protected ResponseEntity<ApiResponse<?>> handleReportNotFoundException(ReportNotFoundException e) {
-        return handleExceptionInternal(e.getErrorCode());
+    public BaseResponseDto<ErrorResponseDto> handleReportNotFoundException(ReportNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.REPORT_NOT_FOUND);
     }
 
     @ExceptionHandler(ReportTypeNotFoundException.class)
-    protected ResponseEntity<ApiResponse<?>> handleReportTypeNotFoundException(ReportTypeNotFoundException e) {
-        return handleExceptionInternal(e.getErrorCode());
+    public BaseResponseDto<ErrorResponseDto> handleReportTypeNotFoundException(ReportTypeNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.REPORT_TYPE_NOT_FOUND);
     }
 
     @ExceptionHandler(AlreadyProcessedReportException.class)
-    protected ResponseEntity<ApiResponse<?>> handleAlreadyProcessedReportException(AlreadyProcessedReportException e) {
-        return handleExceptionInternal(e.getErrorCode());
+    public BaseResponseDto<ErrorResponseDto> handleAlreadyProcessedReportException(AlreadyProcessedReportException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.ALREADY_PROCESSED_REPORT);
     }
 
     @ExceptionHandler(DuplicateReportException.class)
-    protected ResponseEntity<ApiResponse<?>> handleDuplicateReportException(DuplicateReportException e) {
-        return handleExceptionInternal(e.getErrorCode());
+    public BaseResponseDto<ErrorResponseDto> handleDuplicateReportException(DuplicateReportException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.DUPLICATE_REPORT);
     }
 
     @ExceptionHandler(RestrictionTypeNotFoundException.class)
-    protected ResponseEntity<ApiResponse<?>> handleRestrictionTypeNotFoundException(RestrictionTypeNotFoundException e) {
-        return handleExceptionInternal(e.getErrorCode());
+    public BaseResponseDto<ErrorResponseDto> handleRestrictionTypeNotFoundException(RestrictionTypeNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.RESTRICTION_TYPE_NOT_FOUND);
     }
 
     @ExceptionHandler(AiReviewException.class)
-    protected ResponseEntity<ApiResponse<?>> handleAiReviewException(AiReviewException e) {
-        return handleExceptionInternal(e.getErrorCode());
+    public BaseResponseDto<ErrorResponseDto> handleAiReviewException(AiReviewException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.AI_REVIEW_FAILED);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    protected ResponseEntity<ApiResponse<?>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
-        String paramName = e.getName();
-        String value = e.getValue() != null ? e.getValue().toString() : "null";
-        String message = String.format("'%s' 파라미터에 잘못된 값이 들어왔습니다: '%s'", paramName, value);
-
-        return ResponseEntity
-                .status(ErrorMessages.INVALID_ENUM_VALUE.getHttpStatus())
-                .body(ApiResponse.fail(
-                        ErrorMessages.INVALID_ENUM_VALUE.getHttpStatus().value(),
-                        message
-                ));
-    }
-
-
-    private ResponseEntity<ApiResponse<?>> handleExceptionInternal(ErrorMessages errorCode) {
-        return ResponseEntity
-                .status(errorCode.getHttpStatus())
-                .body(ApiResponse.fail(errorCode.getHttpStatus().value(), errorCode.getMessage()));
+    public BaseResponseDto<ErrorResponseDto> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.INVALID_ENUM_VALUE);
     }
 }

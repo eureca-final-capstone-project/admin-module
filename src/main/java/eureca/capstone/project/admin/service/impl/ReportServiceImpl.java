@@ -14,7 +14,6 @@ import eureca.capstone.project.admin.repository.ReportHistoryRepository;
 import eureca.capstone.project.admin.repository.ReportTypeRepository;
 import eureca.capstone.project.admin.repository.RestrictionTargetRepository;
 import eureca.capstone.project.admin.repository.RestrictionTypeRepository;
-import eureca.capstone.project.admin.response.ErrorMessages;
 import eureca.capstone.project.admin.service.ReportService;
 import eureca.capstone.project.admin.service.external.AIReviewService;
 import eureca.capstone.project.admin.service.external.TransactionModuleService;
