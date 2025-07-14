@@ -1,5 +1,6 @@
 package eureca.capstone.project.admin.controller;
 
+import eureca.capstone.project.admin.dto.request.CreateReportRequestDto;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.dto.request.UpdateRestrictionStatusRequestDto;
 import eureca.capstone.project.admin.dto.response.ReportCountDto;
@@ -40,6 +41,17 @@ public class ReportController {
     public ResponseEntity<ApiResponse<Page<RestrictionDto>>> getRestrictionList(Pageable pageable) {
         Page<RestrictionDto> data = reportService.getRestrictionList(pageable);
         return ApiResponse.success(SuccessMessages.GET_RESTRICTION_LIST_SUCCESS, data);
+    }
+
+    @PostMapping("/reports")
+    public ResponseEntity<ApiResponse<Void>> createReport(@RequestBody CreateReportRequestDto request) {
+        reportService.createReportAndProcessWithAI(
+                request.getUserId(),
+                request.getTransactionFeedId(),
+                request.getReportTypeId(),
+                request.getReason()
+        );
+        return ApiResponse.success(SuccessMessages.CREATE_REPORT_SUCCESS);
     }
 
     @PatchMapping("/reports/history/{reportHistoryId}/process")
