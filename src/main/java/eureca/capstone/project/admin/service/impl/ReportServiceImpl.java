@@ -8,18 +8,18 @@ import eureca.capstone.project.admin.domain.status.ReportHistoryStatus;
 import eureca.capstone.project.admin.domain.status.RestrictionTargetStatus;
 import eureca.capstone.project.admin.dto.request.AIReviewRequestDto;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
-import eureca.capstone.project.admin.dto.response.ReportCountDto;
-import eureca.capstone.project.admin.dto.response.ReportHistoryDto;
-import eureca.capstone.project.admin.dto.response.RestrictExpiredResponseDto;
-import eureca.capstone.project.admin.dto.response.RestrictionDto;
+import eureca.capstone.project.admin.dto.response.*;
+import eureca.capstone.project.admin.exception.*;
 import eureca.capstone.project.admin.repository.ReportHistoryRepository;
 import eureca.capstone.project.admin.repository.ReportTypeRepository;
 import eureca.capstone.project.admin.repository.RestrictionTargetRepository;
 import eureca.capstone.project.admin.repository.RestrictionTypeRepository;
+import eureca.capstone.project.admin.response.ErrorMessages;
 import eureca.capstone.project.admin.service.ReportService;
 import eureca.capstone.project.admin.service.external.AIReviewService;
 import eureca.capstone.project.admin.service.external.TransactionModuleService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,6 +32,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -78,11 +79,11 @@ public class ReportServiceImpl implements ReportService {
     @Transactional
     public void processReportByAdmin(Long reportHistoryId, ProcessReportDto request) {
         ReportHistory reportHistory = reportHistoryRepository.findById(reportHistoryId)
-                .orElseThrow(() -> new IllegalArgumentException("신고내역을 찾지 못했습니다."));
+                .orElseThrow(ReportNotFoundException::new);
 
         List<ReportHistoryStatus> processableStatus = List.of(ReportHistoryStatus.PENDING, ReportHistoryStatus.AI_REJECTED);
         if (!processableStatus.contains(reportHistory.getStatus())) {
-            throw new IllegalStateException("처리할 수 없는 상태입니다. 현재 상태: " + reportHistory.getStatus());
+            throw new AlreadyProcessedReportException();
         }
 
         if (!request.getApproved()) {
@@ -100,15 +101,15 @@ public class ReportServiceImpl implements ReportService {
     public void createReportAndProcessWithAI(Long userId, Long transactionFeedId, Long reportTypeId, String reason) {
 
         ReportType reportType = reportTypeRepository.findById(reportTypeId)
-                .orElseThrow(() -> new IllegalArgumentException("신고 유형을 찾을 수 없습니다."));
+                .orElseThrow(ReportTypeNotFoundException::new);
 
         // 1. transaction-module에서 게시글 정보를 비동기적으로 가져옵니다.
         // TODO: 트랜잭션 모듈에서 상세조회하는 API 구현 완료 시 transactionModuleService 수정하기
         transactionModuleService.getFeedDetails(transactionFeedId)
                 .flatMap(feedDto -> {
-                    // 2. 받아온 authorId로 중복 신고 여부를 바로 확인합니다.
+                    // 2. 받아온 sellerId로 중복 신고 여부를 바로 확인합니다.
                     if (reportHistoryRepository.existsByUserIdAndSellerId(userId, feedDto.getSellerId())) {
-                        return Mono.error(new IllegalStateException("이 사용자의 게시글은 이미 신고했습니다."));
+                        return Mono.error(new DuplicateReportException());
                     }
                     // 2. (성공 시) 받아온 feedDto로 AI 검토 요청 DTO를 만듭니다.
                     AIReviewRequestDto requestDto = new AIReviewRequestDto(
@@ -121,26 +122,22 @@ public class ReportServiceImpl implements ReportService {
                     return aiReviewService.requestReview(requestDto)
                             .map(aiResponse -> Tuples.of(aiResponse, feedDto)); // AI 응답과 feedDto를 함께 전달
                 })
+                .doOnError(error -> {
+                    if (!(error instanceof CustomException)) {
+                        throw new AiReviewException();
+                    }
+                })
                 .subscribe(
-                        tuple -> { // 4. 최종적으로 ReportHistory 저장 시 authorId를 함께 저장합니다.
+                        tuple -> { // 4. 최종적으로 ReportHistory 저장 시 sellerId를 함께 저장합니다.
                             var aiResponse = tuple.getT1();
                             var feedDto = tuple.getT2();
 
-                            ReportHistoryStatus initialStatus; // AI 응답에 따라 상태 결정
-                            if (aiResponse.getConfidence() < 0.8) {
-                                initialStatus = ReportHistoryStatus.PENDING;
-                            } else {
-                                switch (aiResponse.getResult()) {
-                                    case "ACCEPT": initialStatus = ReportHistoryStatus.AI_ACCEPTED; break;
-                                    case "REJECT": initialStatus = ReportHistoryStatus.AI_REJECTED; break;
-                                    default: initialStatus = ReportHistoryStatus.PENDING; break;
-                                }
-                            }
+                            ReportHistoryStatus initialStatus = getReportHistoryStatus(aiResponse);
 
                             ReportHistory newReport = ReportHistory.builder()
                                     .userId(userId)
                                     .transactionFeedId(transactionFeedId)
-                                    .sellerId(feedDto.getSellerId()) // 게시글 작성자 ID 저장
+                                    .sellerId(feedDto.getSellerId())
                                     .reportType(reportType)
                                     .reason(reason)
                                     .isModerated(true)
@@ -152,10 +149,23 @@ public class ReportServiceImpl implements ReportService {
                                 checkAndApplyRestriction(userId, reportType);
                             }
                         },
-                        error -> {
-                            System.err.println("신고 처리 중 오류 발생: " + error.getMessage());
-                        }
+                        error -> log.error("비동기 신고 처리 중 최종 에러 발생: {}", error.getMessage())
                 );
+    }
+
+
+    private static ReportHistoryStatus getReportHistoryStatus(AIReviewResponseDto aiResponse) {
+        ReportHistoryStatus initialStatus; // AI 응답에 따라 상태 결정
+        if (aiResponse.getConfidence() < 0.8) {
+            initialStatus = ReportHistoryStatus.PENDING;
+        } else {
+            initialStatus = switch (aiResponse.getResult()) {
+                case "ACCEPT" -> ReportHistoryStatus.AI_ACCEPTED;
+                case "REJECT" -> ReportHistoryStatus.AI_REJECTED;
+                default -> ReportHistoryStatus.PENDING;
+            };
+        }
+        return initialStatus;
     }
 
     private void checkAndApplyRestriction(Long userId, ReportType reportType) {
@@ -195,7 +205,7 @@ public class ReportServiceImpl implements ReportService {
     private void applyRestriction(Long userId, ReportType reportType, String restrictionContent, Integer duration) {
         // 제재 내용으로 제재 유형 조회
         RestrictionType restrictionType = restrictionTypeRepository.findByContent(restrictionContent)
-                .orElseThrow(() -> new IllegalStateException(restrictionContent + " 유형의 제재를 찾을 수 없습니다."));
+                .orElseThrow(RestrictionTypeNotFoundException::new);
 
         // 제재 만료일 계산
         LocalDateTime expiresAt = (duration == null) ? null : LocalDateTime.now().plusDays(duration);

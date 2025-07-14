@@ -1,12 +1,13 @@
 package eureca.capstone.project.admin.controller;
 
-import eureca.capstone.project.admin.dto.request.CreateReportRequestDto;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.dto.request.UpdateRestrictionStatusRequestDto;
 import eureca.capstone.project.admin.dto.response.ReportCountDto;
 import eureca.capstone.project.admin.dto.response.ReportHistoryDto;
 import eureca.capstone.project.admin.dto.response.RestrictExpiredResponseDto;
 import eureca.capstone.project.admin.dto.response.RestrictionDto;
+import eureca.capstone.project.admin.response.ApiResponse;
+import eureca.capstone.project.admin.response.SuccessMessages;
 import eureca.capstone.project.admin.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,58 +15,50 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
 @RestController
-@RequestMapping("/api/admin/reports")
+@RequestMapping("/api/admin")
 @RequiredArgsConstructor
 public class ReportController {
+
     private final ReportService reportService;
 
-    @GetMapping("/counts")
-    public ResponseEntity<ReportCountDto> getReportCounts() {
-        return ResponseEntity.ok(reportService.getReportCounts());
+    @GetMapping("/reports/counts")
+    public ResponseEntity<ApiResponse<ReportCountDto>> getReportCounts() {
+        ReportCountDto data = reportService.getReportCounts();
+        return ApiResponse.success(SuccessMessages.GET_REPORT_COUNTS_SUCCESS, data);
     }
 
-    @GetMapping("/history")
-    public ResponseEntity<Page<ReportHistoryDto>> getReportHistoryList(@RequestParam(required = false) String status, Pageable pageable) {
-        return ResponseEntity.ok(reportService.getReportHistoryList(status, pageable));
+    @GetMapping("/reports/history")
+    public ResponseEntity<ApiResponse<Page<ReportHistoryDto>>> getReportHistoryList(
+            @RequestParam(required = false) String status,
+            Pageable pageable) {
+        Page<ReportHistoryDto> data = reportService.getReportHistoryList(status, pageable);
+        return ApiResponse.success(SuccessMessages.GET_REPORT_HISTORY_SUCCESS, data);
     }
 
-    @GetMapping("/restrictions")
-    public ResponseEntity<Page<RestrictionDto>> getRestrictionList(Pageable pageable) {
-        return ResponseEntity.ok(reportService.getRestrictionList(pageable));
+    @GetMapping("/reports/restrictions")
+    public ResponseEntity<ApiResponse<Page<RestrictionDto>>> getRestrictionList(Pageable pageable) {
+        Page<RestrictionDto> data = reportService.getRestrictionList(pageable);
+        return ApiResponse.success(SuccessMessages.GET_RESTRICTION_LIST_SUCCESS, data);
     }
 
-    @PostMapping
-    public ResponseEntity<Void> createReport(@RequestBody CreateReportRequestDto request) {
-        reportService.createReportAndProcessWithAI(
-                request.getUserId(),
-                request.getTransactionFeedId(),
-                request.getReportTypeId(),
-                request.getReason()
-        );
-        return ResponseEntity.accepted().build();
-    }
-
-    // TODO: 어드민만 가능하도록 권한 설정해야함
-    @PatchMapping("/history/{reportHistoryId}/process")
-    public ResponseEntity<Void> processReportByAdmin(
-            @PathVariable("reportHistoryId") Long reportHistoryId,
+    @PatchMapping("/reports/history/{reportHistoryId}/process")
+    public ResponseEntity<ApiResponse<Void>> processReportByAdmin(
+            @PathVariable Long reportHistoryId,
             @RequestBody ProcessReportDto request) {
         reportService.processReportByAdmin(reportHistoryId, request);
-        return ResponseEntity.ok().build();
+        return ApiResponse.success(SuccessMessages.PROCESS_REPORT_SUCCESS);
     }
 
-    // 제재 기간이 끝난 사용자 리스트를 리턴해주는 api
     @GetMapping("/restrict-expired-list")
-    public ResponseEntity<RestrictExpiredResponseDto> restrictExpiredList() {
-        return ResponseEntity.ok(reportService.getRestrictExpiredList());
+    public ResponseEntity<ApiResponse<RestrictExpiredResponseDto>> restrictExpiredList() {
+        RestrictExpiredResponseDto data = reportService.getRestrictExpiredList();
+        return ApiResponse.success(SuccessMessages.GET_EXPIRED_RESTRICTIONS_SUCCESS, data);
     }
 
-    // 제재 풀어주는 배치 처리 후 거기서 호출하는 api(제재대상 status를 EXPIRED로 변경)
     @PostMapping("/restrict-expired")
-    public ResponseEntity<Void> expireRestrictions(@RequestBody UpdateRestrictionStatusRequestDto request) {
+    public ResponseEntity<ApiResponse<Void>> expireRestrictions(@RequestBody UpdateRestrictionStatusRequestDto request) {
         reportService.expireRestrictions(request.getRestrictionTargetIds());
-        return ResponseEntity.ok().build();
+        return ApiResponse.success(SuccessMessages.UPDATE_RESTRICTION_STATUS_SUCCESS);
     }
 }
