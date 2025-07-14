@@ -2,6 +2,7 @@ package eureca.capstone.project.admin.domain;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -21,5 +22,11 @@ public class RestrictionType {
     @Column(nullable = false)
     private Integer duration;
 
+    @Builder
+    public RestrictionType(Long restrictionTypeId, String content, Integer duration) {
+        this.restrictionTypeId = restrictionTypeId;
+        this.content = content;
+        this.duration = duration;
+    }
 }
 
