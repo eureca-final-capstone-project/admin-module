@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: admin
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:mysql://${ADMIN_HOST}:${ADMIN_PORT}/admin_db
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${ADMIN_USERNAME}
+    password: ${ADMIN_PASSWORD}
