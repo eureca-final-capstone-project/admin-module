@@ -28,6 +28,9 @@ public class ReportHistory {
     private Long userId;
 
     @Column(nullable = false)
+    private Long sellerId;
+
+    @Column(nullable = false)
     private Long transactionFeedId;
 
     @Column(nullable = false)
@@ -42,10 +45,12 @@ public class ReportHistory {
     @Column(nullable = false)
     private boolean isModerated = false;
 
+
     @Builder
-    public ReportHistory(ReportType reportType, Long userId, Long transactionFeedId, String reason, ReportHistoryStatus status, Boolean isModerated) {
+    public ReportHistory(ReportType reportType, Long userId, Long sellerId, Long transactionFeedId, String reason, ReportHistoryStatus status, Boolean isModerated) {
         this.reportType = reportType;
         this.userId = userId;
+        this.sellerId = sellerId;
         this.transactionFeedId = transactionFeedId;
         this.reason = reason;
         this.status = status;

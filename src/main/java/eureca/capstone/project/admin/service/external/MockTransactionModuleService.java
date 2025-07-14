@@ -20,7 +20,8 @@ public class MockTransactionModuleService extends TransactionModuleService {
         // 실제 통신 대신, 미리 만들어둔 가짜 데이터를 즉시 반환합니다.
         TransactionFeedDto fakeDto = new TransactionFeedDto(
                 "LG U+ 500메가 팔게요",
-                "싸게 팝니다 가져가세요"
+                "싸게 팝니다 가져가세요",
+                99L
         );
         return Mono.just(fakeDto);
     }

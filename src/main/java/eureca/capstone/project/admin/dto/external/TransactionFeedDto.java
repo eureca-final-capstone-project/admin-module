@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class TransactionFeedDto {
     private String title;
     private String content;
+    private Long sellerId;
 }

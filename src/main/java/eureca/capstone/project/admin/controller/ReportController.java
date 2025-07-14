@@ -2,8 +2,10 @@ package eureca.capstone.project.admin.controller;
 
 import eureca.capstone.project.admin.dto.request.CreateReportRequestDto;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
+import eureca.capstone.project.admin.dto.request.UpdateRestrictionStatusRequestDto;
 import eureca.capstone.project.admin.dto.response.ReportCountDto;
 import eureca.capstone.project.admin.dto.response.ReportHistoryDto;
+import eureca.capstone.project.admin.dto.response.RestrictExpiredResponseDto;
 import eureca.capstone.project.admin.dto.response.RestrictionDto;
 import eureca.capstone.project.admin.service.ReportService;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +53,19 @@ public class ReportController {
             @PathVariable("reportHistoryId") Long reportHistoryId,
             @RequestBody ProcessReportDto request) {
         reportService.processReportByAdmin(reportHistoryId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    // 제재 기간이 끝난 사용자 리스트를 리턴해주는 api
+    @GetMapping("/restrict-expired-list")
+    public ResponseEntity<RestrictExpiredResponseDto> restrictExpiredList() {
+        return ResponseEntity.ok(reportService.getRestrictExpiredList());
+    }
+
+    // 제재 풀어주는 배치 처리 후 거기서 호출하는 api(제재대상 status를 EXPIRED로 변경)
+    @PostMapping("/restrict-expired")
+    public ResponseEntity<Void> expireRestrictions(@RequestBody UpdateRestrictionStatusRequestDto request) {
+        reportService.expireRestrictions(request.getRestrictionTargetIds());
         return ResponseEntity.ok().build();
     }
 }

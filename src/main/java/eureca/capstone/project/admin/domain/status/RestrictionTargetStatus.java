@@ -8,7 +8,8 @@ import lombok.RequiredArgsConstructor;
 public enum RestrictionTargetStatus {
     PENDING("제재 대기중"),
     ACCEPTED("승인"),
-    REJECTED("미승인");
+    REJECTED("미승인"),
+    EXPIRED("제재 만료");
 
     private final String description;
 

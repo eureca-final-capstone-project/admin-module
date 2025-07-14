@@ -20,4 +20,6 @@ public interface ReportHistoryRepository extends JpaRepository<ReportHistory, Lo
     long countByUserIdAndReportTypeAndStatusIn(Long userId, ReportType reportType, List<ReportHistoryStatus> statuses);
 
     Page<ReportHistory> findByStatus(ReportHistoryStatus status, Pageable pageable);
+
+    boolean existsByUserIdAndSellerId(Long userId, Long sellerId);
 }

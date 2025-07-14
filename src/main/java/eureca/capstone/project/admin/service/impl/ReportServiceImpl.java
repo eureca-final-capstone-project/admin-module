@@ -10,6 +10,7 @@ import eureca.capstone.project.admin.dto.request.AIReviewRequestDto;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.dto.response.ReportCountDto;
 import eureca.capstone.project.admin.dto.response.ReportHistoryDto;
+import eureca.capstone.project.admin.dto.response.RestrictExpiredResponseDto;
 import eureca.capstone.project.admin.dto.response.RestrictionDto;
 import eureca.capstone.project.admin.repository.ReportHistoryRepository;
 import eureca.capstone.project.admin.repository.ReportTypeRepository;
@@ -23,6 +24,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -103,6 +106,10 @@ public class ReportServiceImpl implements ReportService {
         // TODO: 트랜잭션 모듈에서 상세조회하는 API 구현 완료 시 transactionModuleService 수정하기
         transactionModuleService.getFeedDetails(transactionFeedId)
                 .flatMap(feedDto -> {
+                    // 2. 받아온 authorId로 중복 신고 여부를 바로 확인합니다.
+                    if (reportHistoryRepository.existsByUserIdAndSellerId(userId, feedDto.getSellerId())) {
+                        return Mono.error(new IllegalStateException("이 사용자의 게시글은 이미 신고했습니다."));
+                    }
                     // 2. (성공 시) 받아온 feedDto로 AI 검토 요청 DTO를 만듭니다.
                     AIReviewRequestDto requestDto = new AIReviewRequestDto(
                             feedDto.getTitle(),
@@ -111,37 +118,44 @@ public class ReportServiceImpl implements ReportService {
                             reportType.getType()
                     );
                     // 3. AI 서비스에 검토를 요청하는 또 다른 비동기 파이프라인을 반환합니다.
-                    return aiReviewService.requestReview(requestDto);
+                    return aiReviewService.requestReview(requestDto)
+                            .map(aiResponse -> Tuples.of(aiResponse, feedDto)); // AI 응답과 feedDto를 함께 전달
                 })
-                .subscribe(aiResponse -> { // 4. (최종 성공 시) AI 응답으로 후속 처리를 합니다.
-                    // AI 응답에 따라 신고 상태 결정
-                    ReportHistoryStatus initialStatus;
-                    if (aiResponse.getConfidence() < 0.8) {
-                        initialStatus = ReportHistoryStatus.PENDING;
-                    } else {
-                        switch (aiResponse.getResult()) {
-                            case "ACCEPT": initialStatus = ReportHistoryStatus.AI_ACCEPTED; break;
-                            case "REJECT": initialStatus = ReportHistoryStatus.AI_REJECTED; break;
-                            default: initialStatus = ReportHistoryStatus.PENDING; break;
+                .subscribe(
+                        tuple -> { // 4. 최종적으로 ReportHistory 저장 시 authorId를 함께 저장합니다.
+                            var aiResponse = tuple.getT1();
+                            var feedDto = tuple.getT2();
+
+                            ReportHistoryStatus initialStatus; // AI 응답에 따라 상태 결정
+                            if (aiResponse.getConfidence() < 0.8) {
+                                initialStatus = ReportHistoryStatus.PENDING;
+                            } else {
+                                switch (aiResponse.getResult()) {
+                                    case "ACCEPT": initialStatus = ReportHistoryStatus.AI_ACCEPTED; break;
+                                    case "REJECT": initialStatus = ReportHistoryStatus.AI_REJECTED; break;
+                                    default: initialStatus = ReportHistoryStatus.PENDING; break;
+                                }
+                            }
+
+                            ReportHistory newReport = ReportHistory.builder()
+                                    .userId(userId)
+                                    .transactionFeedId(transactionFeedId)
+                                    .sellerId(feedDto.getSellerId()) // 게시글 작성자 ID 저장
+                                    .reportType(reportType)
+                                    .reason(reason)
+                                    .isModerated(true)
+                                    .status(initialStatus)
+                                    .build();
+                            reportHistoryRepository.save(newReport);
+
+                            if (initialStatus == ReportHistoryStatus.AI_ACCEPTED) {
+                                checkAndApplyRestriction(userId, reportType);
+                            }
+                        },
+                        error -> {
+                            System.err.println("신고 처리 중 오류 발생: " + error.getMessage());
                         }
-                    }
-
-                    // ReportHistory 생성 및 저장
-                    ReportHistory newReport = ReportHistory.builder()
-                            .userId(userId)
-                            .transactionFeedId(transactionFeedId)
-                            .reportType(reportType)
-                            .reason(reason)
-                            .status(initialStatus)
-                            .isModerated(true)
-                            .build();
-                    reportHistoryRepository.save(newReport);
-
-                    // AI가 승인한 경우, 즉시 제재 로직 실행
-                    if (initialStatus == ReportHistoryStatus.AI_ACCEPTED) {
-                        checkAndApplyRestriction(userId, reportType);
-                    }
-                });
+                );
     }
 
     private void checkAndApplyRestriction(Long userId, ReportType reportType) {
@@ -196,5 +210,34 @@ public class ReportServiceImpl implements ReportService {
                 .build();
 
         restrictionTargetRepository.save(restriction);
+    }
+
+    @Transactional
+    @Override
+    public void expireRestrictions(List<Long> restrictionTargetIds) {
+        if (restrictionTargetIds == null || restrictionTargetIds.isEmpty()) {
+            return;
+        }
+        restrictionTargetRepository.updateStatusForIds(
+                restrictionTargetIds,
+                RestrictionTargetStatus.EXPIRED
+        );
+    }
+
+    @Override
+    public RestrictExpiredResponseDto getRestrictExpiredList() {
+        // 1. 현재 시간을 기준으로 만료된 'ACCEPTED' 상태의 제재 기록을 조회
+        List<RestrictionTarget> expiredTargets = restrictionTargetRepository.findExpiredRestrictions(
+                LocalDateTime.now(),
+                RestrictionTargetStatus.ACCEPTED
+        );
+
+        // 2. 각 제재 기록을 ExpiredRestrictionInfo DTO로 변환
+        List<RestrictExpiredResponseDto.ExpiredRestrictionInfo> expiredInfoList = expiredTargets.stream()
+                .map(RestrictExpiredResponseDto.ExpiredRestrictionInfo::from)
+                .toList();
+
+        // 3. 최종 DTO에 담아 반환
+        return new RestrictExpiredResponseDto(expiredInfoList);
     }
 }
