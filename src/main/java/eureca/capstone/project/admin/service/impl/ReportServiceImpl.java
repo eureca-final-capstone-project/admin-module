@@ -47,10 +47,10 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public ReportCountDto getReportCounts() {
-        LocalDateTime startOfToday = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
 
         // 오늘 신고 건수 및 전체 신고 건수 조회
-        long todayCount = reportHistoryRepository.countByCreatedAtAfter(startOfToday);
+        Long todayCount = reportHistoryRepository.countByCreatedAtAfter(startOfToday);
         long totalCount = reportHistoryRepository.count();
 
         return ReportCountDto.builder()
@@ -69,9 +69,12 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<RestrictionDto> getRestrictionList(Pageable pageable) {
-        return restrictionTargetRepository.findAll(pageable)
-                .map(RestrictionDto::from);
+    public Page<RestrictionDto> getRestrictionList(RestrictionTargetStatus status, Pageable pageable) {
+        if (status == null) {
+            return restrictionTargetRepository.findAll(pageable).map(RestrictionDto::from);
+        } else {
+            return restrictionTargetRepository.findByStatus(status, pageable).map(RestrictionDto::from);
+        }
     }
 
     @Override
@@ -173,29 +176,36 @@ public class ReportServiceImpl implements ReportService {
 
         // 현재 승인된 건을 포함한 누적 위반 횟수 계산
         long violationCount = reportHistoryRepository.countByUserIdAndReportTypeAndStatusIn(userId, reportType, acceptedStatuses);
+        RestrictionType restrictionType = null;
 
-        // 제재 규칙 적용
-        switch (reportType.getType()) {
-            case "음란 내용 포함":
-                // 즉시 영구 정지
-                applyRestriction(userId, reportType, "영구 제한", null);
+        switch (reportType.getReportTypeId().intValue()) {
+            case 3: // 음란 내용 포함
+                restrictionType = restrictionTypeRepository.findById(2L)
+                                .orElseThrow(ReportTypeNotFoundException::new);
+                applyRestriction(userId, reportType, restrictionType.getContent(), null);
                 break;
 
-            case "욕설 및 비속어 포함":
+            case 1: // 욕설 및 비속어 포함
                 if (violationCount >= 5) {
-                    applyRestriction(userId, reportType, "게시글 작성 제한", 7);
+                    restrictionType = restrictionTypeRepository.findById(1L)
+                            .orElseThrow(ReportTypeNotFoundException::new);
+                    applyRestriction(userId, reportType, restrictionType.getContent(), restrictionType.getDuration());
                 }
                 break;
 
-            case "주제 불일치": // '주제 불일치' 유형으로 가정
+            case 2: // 주제 관련 없음
                 if (violationCount >= 5) {
-                    applyRestriction(userId, reportType, "게시글 작성 제한(1일)", 1);
+                    restrictionType = restrictionTypeRepository.findById(4L)
+                            .orElseThrow(ReportTypeNotFoundException::new);
+                    applyRestriction(userId, reportType, restrictionType.getContent(), restrictionType.getDuration());
                 }
                 break;
 
-            case "허위 신고":
+            case 4: // 허위신고
                 if (violationCount >= 3) {
-                    applyRestriction(userId, reportType, "신고 제한", 30);
+                    restrictionType = restrictionTypeRepository.findById(3L)
+                            .orElseThrow(ReportTypeNotFoundException::new);
+                    applyRestriction(userId, reportType, restrictionType.getContent(), restrictionType.getDuration());
                 }
                 break;
         }

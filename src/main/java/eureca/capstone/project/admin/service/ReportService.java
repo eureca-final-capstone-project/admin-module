@@ -1,6 +1,7 @@
 package eureca.capstone.project.admin.service;
 
 import eureca.capstone.project.admin.domain.status.ReportHistoryStatus;
+import eureca.capstone.project.admin.domain.status.RestrictionTargetStatus;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.dto.response.ReportCountDto;
 import eureca.capstone.project.admin.dto.response.ReportHistoryDto;
@@ -16,7 +17,7 @@ public interface ReportService {
 
     ReportCountDto getReportCounts();
     Page<ReportHistoryDto> getReportHistoryList(ReportHistoryStatus status, Pageable pageable);
-    Page<RestrictionDto> getRestrictionList(Pageable pageable);
+    Page<RestrictionDto> getRestrictionList(RestrictionTargetStatus status, Pageable pageable);
     void processReportByAdmin(Long reportHistoryId, ProcessReportDto request);
     void createReportAndProcessWithAI(Long userId, Long transactionFeedId, Long reportTypeId, String reason);
     RestrictExpiredResponseDto getRestrictExpiredList();
