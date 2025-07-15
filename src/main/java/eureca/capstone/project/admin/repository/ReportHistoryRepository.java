@@ -22,5 +22,5 @@ public interface ReportHistoryRepository extends JpaRepository<ReportHistory, Lo
 
     Page<ReportHistory> findByStatus(Status status, Pageable pageable);
 
-
+    boolean existsByUserAndSeller(User user, User seller);
 }

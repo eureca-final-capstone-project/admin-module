@@ -108,6 +108,11 @@ public class ReportServiceImpl implements ReportService {
 
         TransactionFeed transactionFeed = transactionFeedRepository.findById(transactionFeedId)
                         .orElseThrow(IllegalArgumentException::new);
+
+        if(reportHistoryRepository.existsByUserAndSeller(user, transactionFeed.getUser())){
+            throw new DuplicateReportException();
+        }
+
         AIReviewRequestDto requestDto = new AIReviewRequestDto(
                 transactionFeed.getTitle(),
                 transactionFeed.getContent(),
