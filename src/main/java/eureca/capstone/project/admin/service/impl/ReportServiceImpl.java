@@ -157,8 +157,8 @@ public class ReportServiceImpl implements ReportService {
 
     private void checkAndApplyRestriction(User user, ReportType reportType) {
         // 승인된 신고(AI, 관리자) 목록
-        Status aiAcceptStatus = statusRepository.findByCode("pending");
-        Status adminAcceptStatus = statusRepository.findByCode("ai_reject");
+        Status aiAcceptStatus = statusRepository.findByCode("AI_ACCEPTED");
+        Status adminAcceptStatus = statusRepository.findByCode("ADMIN_ACCEPTED");
         List<Status> acceptedStatuses = List.of(aiAcceptStatus, adminAcceptStatus);
 
         // 현재 승인된 건을 포함한 누적 위반 횟수 계산
