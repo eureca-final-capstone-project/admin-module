@@ -15,8 +15,8 @@ import java.util.List;
 public interface ReportService {
 
     ReportCountDto getReportCounts();
-    Page<ReportHistoryDto> getReportHistoryList(Status status, Pageable pageable);
-    Page<RestrictionDto> getRestrictionList(Status status, Pageable pageable);
+    Page<ReportHistoryDto> getReportHistoryListByStatusCode(String statusCode, Pageable pageable);
+    Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode, Pageable pageable);
     void processReportByAdmin(Long reportHistoryId, ProcessReportDto request);
     void createReportAndProcessWithAI(Long userId, Long transactionFeedId, Long reportTypeId, String reason);
     RestrictExpiredResponseDto getRestrictExpiredList();
