@@ -55,21 +55,27 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<ReportHistoryDto> getReportHistoryList(Status status, Pageable pageable) {
-        if (status == null) {
+    public Page<ReportHistoryDto> getReportHistoryListByStatusCode(String statusCode, Pageable pageable) {
+        if (statusCode == null || statusCode.isBlank()) {
             return reportHistoryRepository.findAll(pageable).map(ReportHistoryDto::from);
-        } else {
-            return reportHistoryRepository.findByStatus(status, pageable).map(ReportHistoryDto::from);
         }
+
+        Status status = statusRepository.findByDomainAndCode("REPORT", statusCode)
+                .orElseThrow(ReportTypeNotFoundException::new);
+
+        return reportHistoryRepository.findByStatus(status, pageable).map(ReportHistoryDto::from);
     }
 
     @Override
-    public Page<RestrictionDto> getRestrictionList(Status status, Pageable pageable) {
-        if (status == null) {
+    public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode, Pageable pageable) {
+        if (statusCode == null || statusCode.isBlank()) {
             return restrictionTargetRepository.findAll(pageable).map(RestrictionDto::from);
-        } else {
-            return restrictionTargetRepository.findByStatus(status, pageable).map(RestrictionDto::from);
         }
+
+        Status status = statusRepository.findByDomainAndCode("RESTRICTION", statusCode)
+                .orElseThrow(RestrictionTypeNotFoundException::new);
+
+        return restrictionTargetRepository.findByStatus(status, pageable).map(RestrictionDto::from);
     }
 
     @Override
