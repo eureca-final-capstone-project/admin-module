@@ -4,7 +4,7 @@ import eureca.capstone.project.admin.domain.ReportHistory;
 import eureca.capstone.project.admin.domain.ReportType;
 import eureca.capstone.project.admin.domain.RestrictionTarget;
 import eureca.capstone.project.admin.domain.RestrictionType;
-import eureca.capstone.project.admin.domain.common.entry.Status;
+import eureca.capstone.project.admin.domain.common.entity.Status;
 import eureca.capstone.project.admin.domain.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.admin.domain.user.entity.User;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
@@ -211,13 +211,22 @@ public class ReportServiceTest {
         // given
         ProcessReportDto request = new ProcessReportDto();
         ReflectionTestUtils.setField(request, "approved", false);
+        Status pending = Status.builder().code("MODERATION_PENDING").build();
+        Status aiRejected = Status.builder().code("AI_REJECTED").build();
+        Status adminRejected = Status.builder().code("ADMIN_REJECTED").build();
+
+        report1.updateStatus(pending);
+
+        when(statusRepository.findByCode("MODERATION_PENDING")).thenReturn(pending);
+        when(statusRepository.findByCode("AI_REJECTED")).thenReturn(aiRejected);
+        when(statusRepository.findByCode("ADMIN_REJECTED")).thenReturn(adminRejected);
         when(reportHistoryRepository.findById(1L)).thenReturn(Optional.of(report1));
 
         // when
         reportService.processReportByAdmin(1L, request);
 
         // then
-        assertEquals(Status.builder().code("ADMIN_REJECTED"), report1.getStatus());
+        assertEquals(adminRejected, report1.getStatus());
         verify(reportHistoryRepository).findById(1L);
     }
 
@@ -227,13 +236,25 @@ public class ReportServiceTest {
         // given
         ProcessReportDto request = new ProcessReportDto();
         ReflectionTestUtils.setField(request, "approved", true);
+
+        Status pending = Status.builder().code("MODERATION_PENDING").build();
+        Status aiAccepted = Status.builder().code("AI_ACCEPTED").build();
+        Status aiRejected = Status.builder().code("AI_REJECTED").build();
+        Status adminAccepted = Status.builder().code("ADMIN_ACCEPTED").build();
+
+        report1.updateStatus(pending);
+
         when(reportHistoryRepository.findById(1L)).thenReturn(Optional.of(report1));
+        when(statusRepository.findByCode("MODERATION_PENDING")).thenReturn(pending);
+        when(statusRepository.findByCode("AI_ACCEPTED")).thenReturn(aiAccepted);
+        when(statusRepository.findByCode("AI_REJECTED")).thenReturn(aiRejected);
+        when(statusRepository.findByCode("ADMIN_ACCEPTED")).thenReturn(adminAccepted);
 
         // when
         reportService.processReportByAdmin(1L, request);
 
         // then
-        assertEquals(Status.builder().code("ADMIN_ACCEPTED"), report1.getStatus());
+        assertEquals(adminAccepted, report1.getStatus());
         verify(reportHistoryRepository).findById(1L);
     }
 
@@ -244,6 +265,8 @@ public class ReportServiceTest {
         ProcessReportDto request = new ProcessReportDto();
         ReflectionTestUtils.setField(request, "approved", true);
 
+        when(statusRepository.findByCode("MODERATION_PENDING")).thenReturn(Status.builder().code("MODERATION_PENDING").build());
+        when(statusRepository.findByCode("AI_REJECTED")).thenReturn(Status.builder().code("AI_REJECTED").build());
         when(reportHistoryRepository.findById(2L)).thenReturn(Optional.of(report2));
 
         // then
@@ -273,7 +296,7 @@ public class ReportServiceTest {
         when(restrictionTypeRepository.findByContent("게시글 작성 제한(7일)")).thenReturn(Optional.of(restrictionType));
 
         // when
-        ReflectionTestUtils.invokeMethod(reportService,"applyRestriction",100L, reportType, "게시글 작성 제한(7일)", 7);
+        ReflectionTestUtils.invokeMethod(reportService,"applyRestriction",user1, reportType, "게시글 작성 제한(7일)", 7);
 
         // then
         verify(restrictionTypeRepository).findByContent("게시글 작성 제한(7일)");
@@ -305,14 +328,15 @@ public class ReportServiceTest {
     void expireRestrictions_Success() {
         // given
         List<Long> ids = List.of(1L, 2L, 3L);
-
+        Status restrictExpire = Status.builder().code("RESTRICT_EXPIRATION").build();
+        when(statusRepository.findByCode("RESTRICT_EXPIRATION")).thenReturn(restrictExpire);
         // when
         reportService.expireRestrictions(ids);
 
         // then
         verify(restrictionTargetRepository).updateStatusForIds(
                 eq(ids),
-                eq(Status.builder().code("RESTRICT_EXPIRATION").build())
+                eq(restrictExpire)
         );
     }
 
@@ -336,7 +360,9 @@ public class ReportServiceTest {
                 .expiresAt(LocalDateTime.now())
                 .build();
 
-        when(restrictionTargetRepository.findExpiredRestrictions(any(LocalDateTime.class), eq(Status.builder().code("COMPLETED").build())))
+        Status completed = Status.builder().code("COMPLETED").build();
+        when(statusRepository.findByCode("COMPLETED")).thenReturn(completed);
+        when(restrictionTargetRepository.findExpiredRestrictions(any(LocalDateTime.class), eq(completed)))
                 .thenReturn(List.of(expired1, expired2));
 
         // when
@@ -348,7 +374,7 @@ public class ReportServiceTest {
         assertEquals(100L, result.getExpiredRestrictions().get(0).getUserId());
         assertEquals(101L, result.getExpiredRestrictions().get(1).getUserId());
 
-        verify(restrictionTargetRepository).findExpiredRestrictions(any(LocalDateTime.class), eq(Status.builder().code("COMPLETED").build()));
+        verify(restrictionTargetRepository).findExpiredRestrictions(any(LocalDateTime.class), eq(completed));
         verifyNoMoreInteractions(restrictionTargetRepository);
     }
 
