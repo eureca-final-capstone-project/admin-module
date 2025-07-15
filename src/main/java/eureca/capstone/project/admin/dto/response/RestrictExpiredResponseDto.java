@@ -24,7 +24,7 @@ public class RestrictExpiredResponseDto {
         public static ExpiredRestrictionInfo from(RestrictionTarget target) {
             ExpiredRestrictionInfo info = new ExpiredRestrictionInfo();
             info.restrictionTargetId = target.getRestrictionTargetId();
-            info.userId = target.getUserId();
+            info.userId = target.getUser().getUserId();
             info.restrictionContent = target.getRestrictionType().getContent();
             return info;
         }

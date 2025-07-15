@@ -6,17 +6,17 @@ spring:
   profiles:
     active: local-test
   datasource:
-    url: jdbc:mysql://${ADMIN_HOST}:${ADMIN_PORT}/admin_db
+    url: jdbc:mysql://user-db.cj06aomcgfqr.ap-northeast-2.rds.amazonaws.com:3306/capstone_project
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${ADMIN_USERNAME}
-    password: ${ADMIN_PASSWORD}
+    username: admin
+    password: ureca!#%!#
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
   ai:
     openai:
-      api-key: ${AI_API_KEY}
+      api-key: AIzaSyCJaxikI8Wj2cpaZVzOPXLmTEJN-_GX7HQ
       base-url: https://generativelanguage.googleapis.com/v1beta/openai
       chat:
         completions-path: /chat/completions
