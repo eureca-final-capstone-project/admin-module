@@ -1,6 +1,6 @@
 package eureca.capstone.project.admin.domain;
 
-import eureca.capstone.project.admin.domain.common.entry.Status;
+import eureca.capstone.project.admin.domain.common.entity.Status;
 import eureca.capstone.project.admin.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

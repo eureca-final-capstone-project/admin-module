@@ -1,7 +1,7 @@
 package eureca.capstone.project.admin.domain;
 
-import eureca.capstone.project.admin.domain.common.entry.BaseEntity;
-import eureca.capstone.project.admin.domain.common.entry.Status;
+import eureca.capstone.project.admin.domain.common.entity.BaseEntity;
+import eureca.capstone.project.admin.domain.common.entity.Status;
 import eureca.capstone.project.admin.domain.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.admin.domain.user.entity.User;
 import jakarta.persistence.*;

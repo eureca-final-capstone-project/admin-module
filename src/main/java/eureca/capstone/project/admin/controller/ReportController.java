@@ -1,6 +1,6 @@
 package eureca.capstone.project.admin.controller;
 
-import eureca.capstone.project.admin.domain.common.entry.Status;
+import eureca.capstone.project.admin.domain.common.entity.Status;
 import eureca.capstone.project.admin.dto.request.CreateReportRequestDto;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.dto.request.UpdateRestrictionStatusRequestDto;

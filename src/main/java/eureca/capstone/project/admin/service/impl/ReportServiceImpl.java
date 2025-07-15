@@ -4,7 +4,7 @@ import eureca.capstone.project.admin.domain.ReportHistory;
 import eureca.capstone.project.admin.domain.ReportType;
 import eureca.capstone.project.admin.domain.RestrictionTarget;
 import eureca.capstone.project.admin.domain.RestrictionType;
-import eureca.capstone.project.admin.domain.common.entry.Status;
+import eureca.capstone.project.admin.domain.common.entity.Status;
 import eureca.capstone.project.admin.domain.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.admin.domain.user.entity.User;
 import eureca.capstone.project.admin.dto.request.AIReviewRequestDto;

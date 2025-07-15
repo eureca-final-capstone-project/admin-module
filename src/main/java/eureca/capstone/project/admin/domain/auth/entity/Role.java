@@ -1,6 +1,6 @@
 package eureca.capstone.project.admin.domain.auth.entity;
 
-import eureca.capstone.project.admin.domain.common.entry.BaseEntity;
+import eureca.capstone.project.admin.domain.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

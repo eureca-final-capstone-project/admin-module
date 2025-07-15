@@ -1,8 +1,8 @@
 package eureca.capstone.project.admin.domain.user.entity;
 
-import eureca.capstone.project.admin.domain.common.entry.BaseEntity;
-import eureca.capstone.project.admin.domain.common.entry.Status;
-import eureca.capstone.project.admin.domain.common.entry.TelecomCompany;
+import eureca.capstone.project.admin.domain.common.entity.BaseEntity;
+import eureca.capstone.project.admin.domain.common.entity.Status;
+import eureca.capstone.project.admin.domain.common.entity.TelecomCompany;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

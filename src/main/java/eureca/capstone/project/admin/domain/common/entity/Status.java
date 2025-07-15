@@ -1,4 +1,4 @@
-package eureca.capstone.project.admin.domain.common.entry;
+package eureca.capstone.project.admin.domain.common.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

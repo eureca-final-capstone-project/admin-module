@@ -2,7 +2,7 @@ package eureca.capstone.project.admin.repository;
 
 import eureca.capstone.project.admin.domain.ReportHistory;
 import eureca.capstone.project.admin.domain.ReportType;
-import eureca.capstone.project.admin.domain.common.entry.Status;
+import eureca.capstone.project.admin.domain.common.entity.Status;
 import eureca.capstone.project.admin.domain.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
