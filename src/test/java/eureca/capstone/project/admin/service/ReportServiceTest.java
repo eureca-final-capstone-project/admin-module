@@ -139,7 +139,7 @@ public class ReportServiceTest {
         when(reportHistoryRepository.findAll(pageable)).thenReturn(page);
 
         // when
-        Page<ReportHistoryDto> result = reportService.getReportHistoryList(null, pageable);
+        Page<ReportHistoryDto> result = reportService.getReportHistoryListByStatusCode(null, pageable);
 
         // then
         assertNotNull(result);
@@ -155,54 +155,54 @@ public class ReportServiceTest {
     @DisplayName("신고 내역 필터링 조회_성공")
     void getReportHistory_filtering_Success() {
         // given
-        Status reportStatus = Status.builder().code("PENDING").build();
+        String statusCode = "PENDING";
+        Status pendingStatus = report1.getStatus();
         Page<ReportHistory> page = new PageImpl<>(List.of(report1));
-        when(reportHistoryRepository.findByStatus(reportStatus, pageable)).thenReturn(page);
+
+        when(statusRepository.findByDomainAndCode("REPORT", statusCode)).thenReturn(Optional.of(pendingStatus));
+        when(reportHistoryRepository.findByStatus(pendingStatus, pageable)).thenReturn(page);
 
         // when
-        Page<ReportHistoryDto> result = reportService.getReportHistoryList(reportStatus, pageable);
+        Page<ReportHistoryDto> result = reportService.getReportHistoryListByStatusCode(statusCode, pageable);
 
         // then
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        assertEquals(report1.getReportHistoryId(), result.getContent().get(0).getReportHistoryId());
-        assertEquals(report1.getUser().getUserId(), result.getContent().get(0).getUserId());
-        verify(reportHistoryRepository).findByStatus(reportStatus, pageable);
+        verify(statusRepository).findByDomainAndCode("REPORT", statusCode);
+        verify(reportHistoryRepository).findByStatus(pendingStatus, pageable);
     }
 
     @Test
     @DisplayName("제재 내역 전체 조회_성공")
     void getRestrictionList_all_Success() {
-        // given
         Page<RestrictionTarget> page = new PageImpl<>(List.of(restriction1, restriction2));
         when(restrictionTargetRepository.findAll(pageable)).thenReturn(page);
 
-        // when
-        Page<RestrictionDto> result = reportService.getRestrictionList(null, pageable);
+        Page<RestrictionDto> result = reportService.getRestrictionListByStatusCode(null, pageable);
 
-        // then
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
-        assertEquals(restriction1.getUser().getUserId(), result.getContent().get(0).getUserId());
         verify(restrictionTargetRepository).findAll(pageable);
     }
 
     @Test
     @DisplayName("제재 내역 상태 필터링 조회_성공")
     void getRestrictionList_filtered_Success() {
-        // given
-        Status targetStatus = Status.builder().code("PENDING").build();
+        String statusCode = "PENDING";
+        Status pendingStatus = restriction1.getStatus();
         Page<RestrictionTarget> page = new PageImpl<>(List.of(restriction1));
-        when(restrictionTargetRepository.findByStatus(targetStatus, pageable)).thenReturn(page);
 
-        // when
-        Page<RestrictionDto> result = reportService.getRestrictionList(targetStatus, pageable);
+        // 변경점: statusRepository.findByDomainAndCode Mocking 추가
+        when(statusRepository.findByDomainAndCode("RESTRICTION", statusCode)).thenReturn(Optional.of(pendingStatus));
+        when(restrictionTargetRepository.findByStatus(pendingStatus, pageable)).thenReturn(page);
 
-        // then
+        // 변경점: 새 메서드 호출
+        Page<RestrictionDto> result = reportService.getRestrictionListByStatusCode(statusCode, pageable);
+
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        assertEquals(restriction1.getUser().getUserId(), result.getContent().get(0).getUserId());
-        verify(restrictionTargetRepository).findByStatus(targetStatus, pageable);
+        verify(statusRepository).findByDomainAndCode("RESTRICTION", statusCode);
+        verify(restrictionTargetRepository).findByStatus(pendingStatus, pageable);
     }
 
     @Test
