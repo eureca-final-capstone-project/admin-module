@@ -6,7 +6,7 @@ spring:
   profiles:
     active: local-test
   datasource:
-    url: jdbc:mysql://${ADMIN_HOST}:${ADMIN_PORT}/admin_db
+    url: jdbc:mysql://${ADMIN_HOST}:${ADMIN_PORT}/capstone_project
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${ADMIN_USERNAME}
     password: ${ADMIN_PASSWORD}
@@ -24,7 +24,7 @@ spring:
           model: gemini-2.0-flash
 
 transaction-module:
-  url: null
+
 
 springdoc:
   packages-to-scan: eureca.capstone.project.admin.controller

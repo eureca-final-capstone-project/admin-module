@@ -1,6 +1,7 @@
 package eureca.capstone.project.admin.domain;
 
-import eureca.capstone.project.admin.domain.status.RestrictionTargetStatus;
+import eureca.capstone.project.admin.domain.common.entry.Status;
+import eureca.capstone.project.admin.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -17,10 +18,12 @@ public class RestrictionTarget {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "restriction_target_id")
     private Long restrictionTargetId;
 
-    @Column(nullable = false)
-    private Long userId;
+    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "report_type_id")
@@ -30,15 +33,16 @@ public class RestrictionTarget {
     @JoinColumn(name = "restriction_type_id")
     private RestrictionType restrictionType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private RestrictionTargetStatus status;
+    @JoinColumn(name = "status_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Status status;
 
+    @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
     @Builder
-    public RestrictionTarget(Long userId, ReportType reportType, RestrictionType restrictionType, RestrictionTargetStatus status, LocalDateTime expiresAt) {
-        this.userId = userId;
+    public RestrictionTarget(User user, ReportType reportType, RestrictionType restrictionType, Status status, LocalDateTime expiresAt) {
+        this.user = user;
         this.reportType = reportType;
         this.restrictionType = restrictionType;
         this.status = status;

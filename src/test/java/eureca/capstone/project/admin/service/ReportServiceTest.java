@@ -4,8 +4,9 @@ import eureca.capstone.project.admin.domain.ReportHistory;
 import eureca.capstone.project.admin.domain.ReportType;
 import eureca.capstone.project.admin.domain.RestrictionTarget;
 import eureca.capstone.project.admin.domain.RestrictionType;
-import eureca.capstone.project.admin.domain.status.ReportHistoryStatus;
-import eureca.capstone.project.admin.domain.status.RestrictionTargetStatus;
+import eureca.capstone.project.admin.domain.common.entry.Status;
+import eureca.capstone.project.admin.domain.transaction_feed.entity.TransactionFeed;
+import eureca.capstone.project.admin.domain.user.entity.User;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.dto.response.ReportCountDto;
 import eureca.capstone.project.admin.dto.response.ReportHistoryDto;
@@ -15,6 +16,7 @@ import eureca.capstone.project.admin.exception.AlreadyProcessedReportException;
 import eureca.capstone.project.admin.repository.ReportHistoryRepository;
 import eureca.capstone.project.admin.repository.RestrictionTargetRepository;
 import eureca.capstone.project.admin.repository.RestrictionTypeRepository;
+import eureca.capstone.project.admin.repository.StatusRepository;
 import eureca.capstone.project.admin.service.impl.ReportServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -50,6 +52,9 @@ public class ReportServiceTest {
     @Mock
     private RestrictionTypeRepository restrictionTypeRepository;
 
+    @Mock
+    private StatusRepository statusRepository;
+
     @InjectMocks
     private ReportServiceImpl reportService;
 
@@ -58,41 +63,49 @@ public class ReportServiceTest {
     private ReportHistory report2;
     private RestrictionTarget restriction1;
     private RestrictionTarget restriction2;
+    private User user1;
+    private User user2;
+    private TransactionFeed transactionFeed1;
+    private TransactionFeed transactionFeed2;
 
     @BeforeEach
     void setUp() {
         pageable = PageRequest.of(0, 10); // 페이지 번호 0, 사이즈 10
+        user1 = User.builder().userId(100L).build();
+        transactionFeed1 = TransactionFeed.builder().build();
+        user2 = User.builder().userId(101L).build();
+        transactionFeed2 = TransactionFeed.builder().build();
 
         report1 = ReportHistory.builder()
-                .userId(100L)
-                .transactionFeedId(1L)
+                .user(user1)
+                .transactionFeed(transactionFeed1)
                 .reason("욕설 및 비속어 포함")
                 .reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build())
-                .status(ReportHistoryStatus.PENDING) // 상태 Enum 사용
+                .status(Status.builder().code("MODERATIN_PENDING").build()) // 상태 Enum 사용
                 .isModerated(false)
                 .build();
 
         report2 = ReportHistory.builder()
-                .userId(101L)
-                .transactionFeedId(1L)
+                .user(user2)
+                .transactionFeed(transactionFeed2)
                 .reason("주제 관련 없음")
                 .reportType(ReportType.builder().reportTypeId(2L).type("주제 관련 없음").build())
-                .status(ReportHistoryStatus.AI_ACCEPTED) // 상태 Enum 사용
+                .status(Status.builder().code("AI_ACCEPTED").build()) // 상태 Enum 사용
                 .isModerated(true)
                 .build();
 
         restriction1 = RestrictionTarget.builder()
-                .userId(103L)
+                .user(user1)
                 .reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build())
                 .restrictionType(RestrictionType.builder().content("게시글 작성 제한(7일)").duration(7).build())
-                .status(RestrictionTargetStatus.PENDING)
+                .status(Status.builder().code("PENDING").build())
                 .build();
 
         restriction2 = RestrictionTarget.builder()
-                .userId(104L)
+                .user(user2)
                 .reportType(ReportType.builder().reportTypeId(2L).type("주제 관련 없음").build())
                 .restrictionType(RestrictionType.builder().content("게시글 작성 제한(1일)").duration(1).build())
-                .status(RestrictionTargetStatus.ACCEPTED)
+                .status(Status.builder().code("COMPLETED").build())
                 .build();
     }
 
@@ -133,7 +146,7 @@ public class ReportServiceTest {
         assertEquals(2, result.getTotalElements());
         assertEquals(report1.getReportHistoryId(), result.getContent().get(0).getReportHistoryId());
         assertEquals(report2.getReportHistoryId(), result.getContent().get(1).getReportHistoryId());
-        assertEquals(report1.getUserId(), result.getContent().get(0).getUserId());
+        assertEquals(report1.getUser().getUserId(), result.getContent().get(0).getUserId());
         verify(reportHistoryRepository).findAll(pageable);
     }
 
@@ -142,7 +155,7 @@ public class ReportServiceTest {
     @DisplayName("신고 내역 필터링 조회_성공")
     void getReportHistory_filtering_Success() {
         // given
-        ReportHistoryStatus reportStatus = ReportHistoryStatus.PENDING;
+        Status reportStatus = Status.builder().code("PENDING").build();
         Page<ReportHistory> page = new PageImpl<>(List.of(report1));
         when(reportHistoryRepository.findByStatus(reportStatus, pageable)).thenReturn(page);
 
@@ -153,7 +166,7 @@ public class ReportServiceTest {
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         assertEquals(report1.getReportHistoryId(), result.getContent().get(0).getReportHistoryId());
-        assertEquals(report1.getUserId(), result.getContent().get(0).getUserId());
+        assertEquals(report1.getUser().getUserId(), result.getContent().get(0).getUserId());
         verify(reportHistoryRepository).findByStatus(reportStatus, pageable);
     }
 
@@ -170,7 +183,7 @@ public class ReportServiceTest {
         // then
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
-        assertEquals(restriction1.getUserId(), result.getContent().get(0).getUserId());
+        assertEquals(restriction1.getUser().getUserId(), result.getContent().get(0).getUserId());
         verify(restrictionTargetRepository).findAll(pageable);
     }
 
@@ -178,7 +191,7 @@ public class ReportServiceTest {
     @DisplayName("제재 내역 상태 필터링 조회_성공")
     void getRestrictionList_filtered_Success() {
         // given
-        RestrictionTargetStatus targetStatus = RestrictionTargetStatus.PENDING;
+        Status targetStatus = Status.builder().code("PENDING").build();
         Page<RestrictionTarget> page = new PageImpl<>(List.of(restriction1));
         when(restrictionTargetRepository.findByStatus(targetStatus, pageable)).thenReturn(page);
 
@@ -188,7 +201,7 @@ public class ReportServiceTest {
         // then
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        assertEquals(restriction1.getUserId(), result.getContent().get(0).getUserId());
+        assertEquals(restriction1.getUser().getUserId(), result.getContent().get(0).getUserId());
         verify(restrictionTargetRepository).findByStatus(targetStatus, pageable);
     }
 
@@ -204,7 +217,7 @@ public class ReportServiceTest {
         reportService.processReportByAdmin(1L, request);
 
         // then
-        assertEquals(ReportHistoryStatus.ADMIN_REJECTED, report1.getStatus());
+        assertEquals(Status.builder().code("ADMIN_REJECTED"), report1.getStatus());
         verify(reportHistoryRepository).findById(1L);
     }
 
@@ -220,7 +233,7 @@ public class ReportServiceTest {
         reportService.processReportByAdmin(1L, request);
 
         // then
-        assertEquals(ReportHistoryStatus.ADMIN_ACCEPTED, report1.getStatus());
+        assertEquals(Status.builder().code("ADMIN_ACCEPTED"), report1.getStatus());
         verify(reportHistoryRepository).findById(1L);
     }
 
@@ -299,7 +312,7 @@ public class ReportServiceTest {
         // then
         verify(restrictionTargetRepository).updateStatusForIds(
                 eq(ids),
-                eq(RestrictionTargetStatus.EXPIRED)
+                eq(Status.builder().code("RESTRICT_EXPIRATION").build())
         );
     }
 
@@ -308,22 +321,22 @@ public class ReportServiceTest {
     void getRestrictExpiredList_Success() {
         // given
         RestrictionTarget expired1 = RestrictionTarget.builder()
-                .userId(100L)
+                .user(user1)
                 .reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build())
                 .restrictionType(RestrictionType.builder().content("게시글 작성 제한(7일)").duration(7).build())
-                .status(RestrictionTargetStatus.ACCEPTED)
+                .status(Status.builder().code("COMPLETED").build())
                 .expiresAt(LocalDateTime.now().minusDays(1))
                 .build();
 
         RestrictionTarget expired2 = RestrictionTarget.builder()
-                .userId(101L)
+                .user(user2)
                 .reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build())
                 .restrictionType(RestrictionType.builder().content("게시글 작성 제한(7일)").duration(7).build())
-                .status(RestrictionTargetStatus.ACCEPTED)
+                .status(Status.builder().code("COMPLETED").build())
                 .expiresAt(LocalDateTime.now())
                 .build();
 
-        when(restrictionTargetRepository.findExpiredRestrictions(any(LocalDateTime.class), eq(RestrictionTargetStatus.ACCEPTED)))
+        when(restrictionTargetRepository.findExpiredRestrictions(any(LocalDateTime.class), eq(Status.builder().code("COMPLETED").build())))
                 .thenReturn(List.of(expired1, expired2));
 
         // when
@@ -335,7 +348,7 @@ public class ReportServiceTest {
         assertEquals(100L, result.getExpiredRestrictions().get(0).getUserId());
         assertEquals(101L, result.getExpiredRestrictions().get(1).getUserId());
 
-        verify(restrictionTargetRepository).findExpiredRestrictions(any(LocalDateTime.class), eq(RestrictionTargetStatus.ACCEPTED));
+        verify(restrictionTargetRepository).findExpiredRestrictions(any(LocalDateTime.class), eq(Status.builder().code("COMPLETED").build()));
         verifyNoMoreInteractions(restrictionTargetRepository);
     }
 

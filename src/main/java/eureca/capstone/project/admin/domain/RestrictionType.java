@@ -14,6 +14,7 @@ public class RestrictionType {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name="restriction_type_id")
     private Long restrictionTypeId;
 
     @Column(nullable = false)
