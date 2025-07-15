@@ -1,7 +1,6 @@
 package eureca.capstone.project.admin.controller;
 
-import eureca.capstone.project.admin.domain.status.ReportHistoryStatus;
-import eureca.capstone.project.admin.domain.status.RestrictionTargetStatus;
+import eureca.capstone.project.admin.domain.common.entity.Status;
 import eureca.capstone.project.admin.dto.request.CreateReportRequestDto;
 import eureca.capstone.project.admin.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.dto.request.UpdateRestrictionStatusRequestDto;
@@ -36,7 +35,7 @@ public class ReportController {
     @Operation(summary = "신고 내역 목록 조회", description = "신고 내역을 페이징하여 조회합니다. status 파라미터로 필터링할 수 있습니다.")
     @GetMapping("/reports/history")
     public BaseResponseDto<Page<ReportHistoryDto>> getReportHistoryList(
-            @Parameter(description = "필터링할 신고 상태 (예: PENDING, AI_ACCEPTED 등)") @RequestParam(required = false) ReportHistoryStatus status,
+            @Parameter(description = "필터링할 신고 상태 (예: PENDING, AI_ACCEPTED 등)") @RequestParam(required = false) Status status,
             Pageable pageable) {
         return BaseResponseDto.success(reportService.getReportHistoryList(status, pageable));
     }
@@ -44,7 +43,7 @@ public class ReportController {
     @Operation(summary = "제재 내역 목록 조회", description = "제재 대상 내역을 페이징하여 조회합니다. status 파라미터로 필터링할 수 있습니다.")
     @GetMapping("/restrictions")
     public BaseResponseDto<Page<RestrictionDto>> getRestrictionList(
-            @Parameter(description = "필터링할 신고 상태 (예: PENDING, ACCEPTED 등)") @RequestParam(required = false) RestrictionTargetStatus status,
+            @Parameter(description = "필터링할 신고 상태 (예: PENDING, ACCEPTED 등)") @RequestParam(required = false) Status status,
             Pageable pageable) {
         return BaseResponseDto.success(reportService.getRestrictionList(status, pageable));
     }

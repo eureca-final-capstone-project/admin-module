@@ -1,6 +1,8 @@
 spring:
   application:
     name: admin
+  config:
+    import: optional:file:.env[.properties]
   profiles:
     active: local-test
   datasource:

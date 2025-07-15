@@ -20,7 +20,7 @@ public class RestrictionDto {
     public static RestrictionDto from(RestrictionTarget restrictionTarget) {
         return RestrictionDto.builder()
                 .restrictionTargetId(restrictionTarget.getRestrictionTargetId())
-                .userId(restrictionTarget.getUserId())
+                .userId(restrictionTarget.getUser().getUserId())
                 .reportType(restrictionTarget.getReportType().getType())
                 .restrictionContent(restrictionTarget.getRestrictionType().getContent())
                 .restrictionDuration(restrictionTarget.getRestrictionType().getDuration())

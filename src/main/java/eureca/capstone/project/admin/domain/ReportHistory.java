@@ -1,69 +1,67 @@
 package eureca.capstone.project.admin.domain;
 
-import eureca.capstone.project.admin.domain.status.ReportHistoryStatus;
+import eureca.capstone.project.admin.domain.common.entity.BaseEntity;
+import eureca.capstone.project.admin.domain.common.entity.Status;
+import eureca.capstone.project.admin.domain.transaction_feed.entity.TransactionFeed;
+import eureca.capstone.project.admin.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "report_history")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ReportHistory {
+public class ReportHistory extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "report_history_id")
     private Long reportHistoryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "report_type_id")
     private ReportType reportType;
 
-    @Column(nullable = false)
-    private Long userId;
+    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User user;
 
-    @Column(nullable = false)
-    private Long sellerId;
+    @JoinColumn(name = "seller_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User seller;
 
-    @Column(nullable = false)
-    private Long transactionFeedId;
+    @JoinColumn(name = "transaction_feed_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private TransactionFeed transactionFeed;
 
     @Column(nullable = false)
     private String reason;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ReportHistoryStatus status;
+    @JoinColumn(name = "status_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Status status;
 
-    private LocalDateTime createdAt;
-
-    @Column(nullable = false)
+    @Column(name = "is_moderated")
     private boolean isModerated = false;
 
 
     @Builder
-    public ReportHistory(ReportType reportType, Long userId, Long sellerId, Long transactionFeedId, String reason, ReportHistoryStatus status, Boolean isModerated) {
+    public ReportHistory(ReportType reportType, User user, User seller, TransactionFeed transactionFeed, String reason, Status status, Boolean isModerated) {
         this.reportType = reportType;
-        this.userId = userId;
-        this.sellerId = sellerId;
-        this.transactionFeedId = transactionFeedId;
+        this.user = user;
+        this.seller = seller;
+        this.transactionFeed = transactionFeed;
         this.reason = reason;
         this.status = status;
         this.isModerated = isModerated;
-        this.createdAt = LocalDateTime.now();
     }
 
-    public void approveByAdmin() {
-        this.status = ReportHistoryStatus.ADMIN_ACCEPTED;
+    public void updateStatus(Status status) {
+        this.status = status;
     }
 
-    public void rejectByAdmin() {
-        this.status = ReportHistoryStatus.ADMIN_REJECTED;
-    }
 }
 

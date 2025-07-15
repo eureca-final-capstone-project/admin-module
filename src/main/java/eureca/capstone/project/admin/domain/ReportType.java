@@ -14,6 +14,7 @@ public class ReportType {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "report_type_id")
     private Long reportTypeId;
 
     @Column(nullable = false)

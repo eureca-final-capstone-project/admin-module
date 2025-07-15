@@ -22,7 +22,7 @@ public class AIReviewService {
         this.chatClient = chatClientBuilder.build();
     }
 
-    public Mono<AIReviewResponseDto> requestReview(AIReviewRequestDto requestDto) {
+    public AIReviewResponseDto requestReview(AIReviewRequestDto requestDto) {
         // 1. LLM의 응답을 AIReviewResponseDto.class 형태로 파싱하기 위한 OutputParser 생성
         var outputConverter = new BeanOutputConverter<>(AIReviewResponseDto.class);
 
@@ -66,6 +66,6 @@ public class AIReviewService {
         // 5. LLM의 응답을 파싱하여 DTO 객체로 변환 후 Mono로 감싸서 반환
         AIReviewResponseDto reviewResponseDto = outputConverter.convert(response.getResult().getOutput().getText());
         log.info("AI 판단 결과: {} {}", reviewResponseDto.getResult(), reviewResponseDto.getConfidence());
-        return Mono.just(reviewResponseDto);
+        return reviewResponseDto;
     }
 }

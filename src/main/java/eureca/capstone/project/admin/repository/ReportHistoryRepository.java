@@ -2,7 +2,8 @@ package eureca.capstone.project.admin.repository;
 
 import eureca.capstone.project.admin.domain.ReportHistory;
 import eureca.capstone.project.admin.domain.ReportType;
-import eureca.capstone.project.admin.domain.status.ReportHistoryStatus;
+import eureca.capstone.project.admin.domain.common.entity.Status;
+import eureca.capstone.project.admin.domain.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,9 +18,9 @@ public interface ReportHistoryRepository extends JpaRepository<ReportHistory, Lo
     @Query("SELECT COUNT(rh) FROM ReportHistory rh WHERE rh.createdAt >= :startOfDay")
     Long countByCreatedAtAfter(@Param("startOfDay") LocalDateTime startOfDay);
 
-    Long countByUserIdAndReportTypeAndStatusIn(Long userId, ReportType reportType, List<ReportHistoryStatus> statuses);
+    Long countByUserAndReportTypeAndStatusIn(User user, ReportType reportType, List<Status> statuses);
 
-    Page<ReportHistory> findByStatus(ReportHistoryStatus status, Pageable pageable);
+    Page<ReportHistory> findByStatus(Status status, Pageable pageable);
 
-    boolean existsByUserIdAndSellerId(Long userId, Long sellerId);
+    boolean existsByUserAndSeller(User user, User seller);
 }
