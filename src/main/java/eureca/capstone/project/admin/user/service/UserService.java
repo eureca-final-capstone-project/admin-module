@@ -1,9 +1,8 @@
 package eureca.capstone.project.admin.user.service;
 
-import eureca.capstone.project.admin.user.dto.response.UserResponseDto;
-import org.springframework.data.domain.Page;
+import eureca.capstone.project.admin.user.dto.response.UserPageResponseDto;
 import org.springframework.data.domain.Pageable;
 
 public interface UserService {
-    Page<UserResponseDto> getUserList(Pageable pageable);
+    UserPageResponseDto getUserList(Pageable pageable);
 }

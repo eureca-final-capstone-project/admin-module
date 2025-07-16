@@ -1,17 +1,23 @@
 package eureca.capstone.project.admin.user.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Builder
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserResponseDto {
     Long userId;
     String email;
     String nickName;
-    Integer telecomCompanyId;
+    String telecomCompany;
     String phoneNumber;
     LocalDateTime createdAt;
-    Integer status;
-    Integer reportCount;
+    String status;
+    Long reportCount;
 }
