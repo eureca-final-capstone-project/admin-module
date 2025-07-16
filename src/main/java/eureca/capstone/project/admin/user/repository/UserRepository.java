@@ -1,8 +1,13 @@
 package eureca.capstone.project.admin.user.repository;
 
+import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository extends JpaRepository<User, Long> {
+import java.time.LocalDateTime;
 
+public interface UserRepository extends JpaRepository<User, Long> {
+    long countByStatus(Status status);
+
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }
