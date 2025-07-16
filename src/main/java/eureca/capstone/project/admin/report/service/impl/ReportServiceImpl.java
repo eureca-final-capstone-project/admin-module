@@ -50,7 +50,7 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public ReportCountDto getReportCounts() {
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        Long todayCount = reportHistoryRepository.countByCreatedAtAfter(startOfToday);
+        long todayCount = reportHistoryRepository.countByCreatedAtAfter(startOfToday);
         long totalCount = reportHistoryRepository.count();
         return ReportCountDto.builder()
                 .todayReportCount(todayCount)
