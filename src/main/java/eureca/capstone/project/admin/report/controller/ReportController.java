@@ -47,7 +47,7 @@ public class ReportController {
         return BaseResponseDto.success(reportService.getRestrictionListByStatusCode(statusCode, pageable));
     }
 
-    @Operation(summary = "사용자 신고 접수", description = "사용자가 게시글을 신고하면 AI가 1차 검토 후 접수합니다.")
+    @Operation(summary = "게시글 신고 접수", description = "사용자가 게시글을 신고하면 AI가 1차 검토 후 접수합니다.")
     @PostMapping("/reports")
     public BaseResponseDto<Void> createReport(@RequestBody CreateReportRequestDto request) {
         reportService.createReportAndProcessWithAI(
