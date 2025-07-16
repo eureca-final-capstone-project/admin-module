@@ -2,6 +2,7 @@ package eureca.capstone.project.admin.domain.user.entity;
 
 import eureca.capstone.project.admin.domain.common.entity.BaseEntity;
 import eureca.capstone.project.admin.domain.common.entity.Status;
+
 import eureca.capstone.project.admin.domain.common.entity.TelecomCompany;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -20,16 +21,17 @@ import lombok.NoArgsConstructor;
                 @UniqueConstraint(name = "uk_user_email", columnNames = "email")
         }
 )
-// TODO 이메일에 유니크 제약조건 거는건 어떠한가
 public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
+    @JoinColumn(name = "telecom_company_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private TelecomCompany telecomCompany;
 
+    @Column(unique = true)
     private String email;
     private String password;
     private String nickname;
@@ -37,6 +39,7 @@ public class User extends BaseEntity {
     @Column(name = "phone_number")
     private String phoneNumber;
 
+    @JoinColumn(name = "status_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private Status status;
 
