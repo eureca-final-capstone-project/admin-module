@@ -51,4 +51,8 @@ public class User extends BaseEntity {
     public void updateUserPassword(String password) {
         this.password = password;
     }
+
+    public void updateUserStatus(Status status) {
+        this.status = status;
+    }
 }
