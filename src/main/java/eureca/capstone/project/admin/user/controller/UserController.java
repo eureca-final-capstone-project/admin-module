@@ -30,7 +30,7 @@ public class UserController {
     }
 
     @Operation(summary = "사용자 상태 변경", description = "특정 사용자의 차단/활성화 상태를 변경합니다.")
-    @PatchMapping("/{userId}/bann")
+    @PatchMapping("/{userId}/ban")
     public BaseResponseDto<UpdateUserResponseDto> updateUserStatus(@PathVariable Long userId,
                                                                    @RequestBody UpdateUserRequestDto updateUserRequestDto) {
         UpdateUserResponseDto updateUserResponseDto = userService.updateUserStatus(userId, updateUserRequestDto);

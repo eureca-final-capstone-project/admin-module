@@ -1,4 +1,4 @@
-package eureca.capstone.project.admin.service;
+package eureca.capstone.project.admin.report.service;
 
 import eureca.capstone.project.admin.report.entity.ReportHistory;
 import eureca.capstone.project.admin.report.entity.ReportType;
