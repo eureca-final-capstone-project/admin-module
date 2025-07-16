@@ -87,8 +87,11 @@ public class ReportServiceImpl implements ReportService {
         ReportHistory reportHistory = reportHistoryRepository.findById(reportHistoryId)
                 .orElseThrow(ReportNotFoundException::new);
 
-        Status pendingStatus = statusRepository.findByCode("MODERATION_PENDING");
-        Status aiRejectStatus = statusRepository.findByCode("AI_REJECTED");
+        Status pendingStatus = statusRepository.findByDomainAndCode("REPORT","PENDING")
+                .orElseThrow(StatusNotFoundException::new);
+
+        Status aiRejectStatus = statusRepository.findByDomainAndCode("REPORT","AI_REJECTED")
+                .orElseThrow(StatusNotFoundException::new);
 
         List<Status> processableStatus = List.of(pendingStatus, aiRejectStatus);
         if (!processableStatus.contains(reportHistory.getStatus())) {
@@ -153,12 +156,14 @@ public class ReportServiceImpl implements ReportService {
     private Status getReportHistoryStatus(AIReviewResponseDto aiResponse) {
         Status initialStatus = null; // AI 응답에 따라 상태 결정
         if (aiResponse.getConfidence() < 0.8) {
-            initialStatus = statusRepository.findByCode("MODERATION_PENDING");
+            initialStatus = statusRepository.findByDomainAndCode("REPORT","PENDING")
+                    .orElseThrow(StatusNotFoundException::new);
         } else {
             initialStatus = switch (aiResponse.getResult()) {
                 case "ACCEPT" -> statusRepository.findByCode("AI_ACCEPTED");
                 case "REJECT" -> statusRepository.findByCode("AI_REJECTED");
-                default -> statusRepository.findByCode("MODERATION_PENDING");
+                default -> statusRepository.findByDomainAndCode("REPORT","PENDING")
+                        .orElseThrow(StatusNotFoundException::new);
             };
         }
         return initialStatus;
