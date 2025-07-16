@@ -51,3 +51,12 @@
 * **회원 전체 조회**: 전체 회원 목록을 조회합니다.
 
 * **회원 상태 변경**: 특정 회원의 계정 상태(차단, 차단 해제 등)를 변경합니다.
+
+### 기술 스택
+* **Backend**: [Spring Boot, Java 17, Spring Data JPA, Spring AI]
+
+* **Database**: [MySQL]
+
+* **Infrastructure**: [AWS, Docker]
+
+* **Monitoring**: [Grafana, loki]
