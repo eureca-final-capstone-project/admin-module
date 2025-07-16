@@ -83,6 +83,3 @@ tasks.named('compileJava') {
 tasks.named('test') {
     useJUnitPlatform()
 }
-데이터 중복,꼬임발생
-rds따로만들고
-프론트위한 개바러버 하나 둠
