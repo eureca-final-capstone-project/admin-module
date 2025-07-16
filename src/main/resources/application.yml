@@ -1,10 +1,6 @@
 spring:
   application:
     name: admin
-  config:
-    import: optional:file:.env[.properties]
-  profiles:
-    active: local-test
   datasource:
     url: jdbc:mysql://user-db.cj06aomcgfqr.ap-northeast-2.rds.amazonaws.com:3306/capstone_project
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -23,11 +19,8 @@ spring:
         options:
           model: gemini-2.0-flash
 
-transaction-module:
-  url: null
-
 springdoc:
-  packages-to-scan: eureca.capstone.project.admin.controller
+  packages-to-scan: eureca.capstone.project.admin
   default-consumes-media-type: application/json;charset=UTF-8
   default-produces-media-type: application/json;charset=UTF-8
   swagger-ui:
