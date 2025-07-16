@@ -20,7 +20,7 @@ spring:
           model: gemini-2.0-flash
 
 springdoc:
-  packages-to-scan: eureca.capstone.project.admin.controller
+  packages-to-scan: eureca.capstone.project.admin
   default-consumes-media-type: application/json;charset=UTF-8
   default-produces-media-type: application/json;charset=UTF-8
   swagger-ui:
