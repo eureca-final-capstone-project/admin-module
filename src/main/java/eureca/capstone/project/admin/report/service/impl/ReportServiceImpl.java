@@ -73,7 +73,7 @@ public class ReportServiceImpl implements ReportService {
         if (statusCode == null || statusCode.isBlank()) {
             return restrictionTargetRepository.findAll(pageable).map(RestrictionDto::from);
         }
-        Status status = statusRepository.findByDomainAndCode("RESTRICTION", statusCode)
+        Status status = statusRepository.findByDomainAndCode(RESTRICTION, statusCode)
                 .orElseThrow(RestrictionTypeNotFoundException::new);
         return restrictionTargetRepository.findByStatus(status, pageable).map(RestrictionDto::from);
     }
@@ -85,9 +85,9 @@ public class ReportServiceImpl implements ReportService {
         ReportHistory reportHistory = reportHistoryRepository.findById(reportHistoryId)
                 .orElseThrow(ReportNotFoundException::new);
 
-        Status pendingStatus = statusRepository.findByDomainAndCode("REPORT","PENDING")
+        Status pendingStatus = statusRepository.findByDomainAndCode(REPORT,"PENDING")
                 .orElseThrow(StatusNotFoundException::new);
-        Status aiRejectStatus = statusRepository.findByDomainAndCode("REPORT","AI_REJECTED")
+        Status aiRejectStatus = statusRepository.findByDomainAndCode(REPORT,"AI_REJECTED")
                 .orElseThrow(StatusNotFoundException::new);
 
         List<Status> processableStatus = List.of(pendingStatus, aiRejectStatus);
@@ -97,14 +97,14 @@ public class ReportServiceImpl implements ReportService {
 
         if (!request.getApproved()) {
             // 변경점: findByCode -> findByDomainAndCode
-            Status adminRejectedStatus = statusRepository.findByDomainAndCode("REPORT", "ADMIN_REJECTED")
+            Status adminRejectedStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_REJECTED")
                     .orElseThrow(StatusNotFoundException::new);
             reportHistory.updateStatus(adminRejectedStatus);
             return;
         }
 
         // 변경점: findByCode -> findByDomainAndCode
-        Status adminAcceptedStatus = statusRepository.findByDomainAndCode("REPORT", "ADMIN_ACCEPTED")
+        Status adminAcceptedStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_ACCEPTED")
                 .orElseThrow(StatusNotFoundException::new);
         reportHistory.updateStatus(adminAcceptedStatus);
 
@@ -147,7 +147,7 @@ public class ReportServiceImpl implements ReportService {
         reportHistoryRepository.save(newReport);
 
         // 변경점: findByCode -> findByDomainAndCode
-        Status aiAcceptedStatus = statusRepository.findByDomainAndCode("REPORT", "AI_ACCEPTED")
+        Status aiAcceptedStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED")
                 .orElseThrow(StatusNotFoundException::new);
         if (initialStatus.equals(aiAcceptedStatus)) {
             checkAndApplyRestriction(user, reportType);
@@ -157,21 +157,21 @@ public class ReportServiceImpl implements ReportService {
 
     private Status getReportHistoryStatus(AIReviewResponseDto aiResponse) {
         if (aiResponse.getConfidence() < 0.8) {
-            return statusRepository.findByDomainAndCode("REPORT","PENDING")
+            return statusRepository.findByDomainAndCode(REPORT,"PENDING")
                     .orElseThrow(StatusNotFoundException::new);
         } else {
             // 변경점: findByCode -> findByDomainAndCode
             return switch (aiResponse.getResult()) {
-                case "ACCEPT" -> statusRepository.findByDomainAndCode("REPORT", "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
-                case "REJECT" -> statusRepository.findByDomainAndCode("REPORT", "AI_REJECTED").orElseThrow(StatusNotFoundException::new);
-                default -> statusRepository.findByDomainAndCode("REPORT","PENDING").orElseThrow(StatusNotFoundException::new);
+                case "ACCEPT" -> statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
+                case "REJECT" -> statusRepository.findByDomainAndCode(REPORT, "AI_REJECTED").orElseThrow(StatusNotFoundException::new);
+                default -> statusRepository.findByDomainAndCode(REPORT,"PENDING").orElseThrow(StatusNotFoundException::new);
             };
         }
     }
 
     private void checkAndApplyRestriction(User user, ReportType reportType) {
-        Status aiAcceptStatus = statusRepository.findByDomainAndCode("REPORT", "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
-        Status adminAcceptStatus = statusRepository.findByDomainAndCode("REPORT", "ADMIN_ACCEPTED").orElseThrow(StatusNotFoundException::new);
+        Status aiAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
+        Status adminAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_ACCEPTED").orElseThrow(StatusNotFoundException::new);
         List<Status> acceptedStatuses = List.of(aiAcceptStatus, adminAcceptStatus);
 
         long violationCount = reportHistoryRepository.countByUserAndReportTypeAndStatusIn(user, reportType, acceptedStatuses);
@@ -207,7 +207,7 @@ public class ReportServiceImpl implements ReportService {
         RestrictionType restrictionType = restrictionTypeRepository.findByContent(restrictionContent)
                 .orElseThrow(RestrictionTypeNotFoundException::new);
         LocalDateTime expiresAt = (duration == null) ? null : LocalDateTime.now().plusDays(duration);
-        Status status = statusRepository.findByDomainAndCode("RESTRICTION", "PENDING")
+        Status status = statusRepository.findByDomainAndCode(RESTRICTION, "PENDING")
                 .orElseThrow(StatusNotFoundException::new);
         RestrictionTarget restriction = RestrictionTarget.builder()
                 .user(user)
@@ -225,14 +225,14 @@ public class ReportServiceImpl implements ReportService {
         if (restrictionTargetIds == null || restrictionTargetIds.isEmpty()) {
             return;
         }
-        Status expiredStatus = statusRepository.findByDomainAndCode("RESTRICTION", "RESTRICT_EXPIRATION")
+        Status expiredStatus = statusRepository.findByDomainAndCode(RESTRICTION, "RESTRICT_EXPIRATION")
                 .orElseThrow(StatusNotFoundException::new);
         restrictionTargetRepository.updateStatusForIds(restrictionTargetIds, expiredStatus);
     }
 
     @Override
     public RestrictExpiredResponseDto getRestrictExpiredList() {
-        Status completedStatus = statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED")
+        Status completedStatus = statusRepository.findByDomainAndCode(RESTRICTION, "COMPLETED")
                 .orElseThrow(StatusNotFoundException::new);
 
         List<RestrictionTarget> expiredTargets = restrictionTargetRepository.findExpiredRestrictions(
