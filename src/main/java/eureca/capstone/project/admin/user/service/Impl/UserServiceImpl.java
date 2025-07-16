@@ -5,6 +5,7 @@ import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.user.dto.request.UpdateUserRequestDto;
 import eureca.capstone.project.admin.user.dto.response.UpdateUserResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserPageResponseDto;
+import eureca.capstone.project.admin.user.dto.response.UserReportResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserResponseDto;
 import eureca.capstone.project.admin.user.entity.User;
 import eureca.capstone.project.admin.user.repository.UserRepository;
@@ -16,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -59,4 +62,16 @@ public class UserServiceImpl implements UserService {
                 .isBanned(request.getIsBanned())
                 .build();
     }
+
+    @Override
+    public List<UserReportResponseDto> getUserReport(Long userId) {
+
+        List<UserReportResponseDto> response = userRepository.getUserReportList(userId);
+
+        log.info("[getUserReport] 사용자 신고내역 조회: 총 {} 건", response.size());
+
+        return response;
+    }
+
+
 }
