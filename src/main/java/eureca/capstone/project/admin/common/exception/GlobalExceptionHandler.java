@@ -49,6 +49,12 @@ public class GlobalExceptionHandler {
         return BaseResponseDto.fail(ErrorCode.AI_REVIEW_FAILED);
     }
 
+    @ExceptionHandler(StatusNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handleAiReviewException(StatusNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.STATUS_NOT_FOUND);
+    }
+
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public BaseResponseDto<ErrorResponseDto> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
         log.error(e.getMessage(), e);

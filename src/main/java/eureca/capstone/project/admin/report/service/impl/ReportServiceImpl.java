@@ -1,5 +1,6 @@
 package eureca.capstone.project.admin.report.service.impl;
 
+import eureca.capstone.project.admin.common.entity.StatusConst;
 import eureca.capstone.project.admin.common.exception.custom.*;
 import eureca.capstone.project.admin.common.repository.StatusRepository;
 import eureca.capstone.project.admin.transaction_feed.repository.TransactionFeedRepository;
@@ -28,6 +29,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static eureca.capstone.project.admin.common.entity.StatusConst.*;
+
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -46,11 +50,8 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public ReportCountDto getReportCounts() {
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-
-        // 오늘 신고 건수 및 전체 신고 건수 조회
         Long todayCount = reportHistoryRepository.countByCreatedAtAfter(startOfToday);
         long totalCount = reportHistoryRepository.count();
-
         return ReportCountDto.builder()
                 .todayReportCount(todayCount)
                 .totalReportCount(totalCount)
@@ -62,10 +63,8 @@ public class ReportServiceImpl implements ReportService {
         if (statusCode == null || statusCode.isBlank()) {
             return reportHistoryRepository.findAll(pageable).map(ReportHistoryDto::from);
         }
-
-        Status status = statusRepository.findByDomainAndCode("REPORT", statusCode)
+        Status status = statusRepository.findByDomainAndCode(REPORT, statusCode)
                 .orElseThrow(ReportTypeNotFoundException::new);
-
         return reportHistoryRepository.findByStatus(status, pageable).map(ReportHistoryDto::from);
     }
 
@@ -74,12 +73,11 @@ public class ReportServiceImpl implements ReportService {
         if (statusCode == null || statusCode.isBlank()) {
             return restrictionTargetRepository.findAll(pageable).map(RestrictionDto::from);
         }
-
-        Status status = statusRepository.findByDomainAndCode("RESTRICTION", statusCode)
+        Status status = statusRepository.findByDomainAndCode(RESTRICTION, statusCode)
                 .orElseThrow(RestrictionTypeNotFoundException::new);
-
         return restrictionTargetRepository.findByStatus(status, pageable).map(RestrictionDto::from);
     }
+
 
     @Override
     @Transactional
@@ -87,8 +85,10 @@ public class ReportServiceImpl implements ReportService {
         ReportHistory reportHistory = reportHistoryRepository.findById(reportHistoryId)
                 .orElseThrow(ReportNotFoundException::new);
 
-        Status pendingStatus = statusRepository.findByCode("MODERATION_PENDING");
-        Status aiRejectStatus = statusRepository.findByCode("AI_REJECTED");
+        Status pendingStatus = statusRepository.findByDomainAndCode(REPORT,"PENDING")
+                .orElseThrow(StatusNotFoundException::new);
+        Status aiRejectStatus = statusRepository.findByDomainAndCode(REPORT,"AI_REJECTED")
+                .orElseThrow(StatusNotFoundException::new);
 
         List<Status> processableStatus = List.of(pendingStatus, aiRejectStatus);
         if (!processableStatus.contains(reportHistory.getStatus())) {
@@ -96,11 +96,17 @@ public class ReportServiceImpl implements ReportService {
         }
 
         if (!request.getApproved()) {
-            reportHistory.updateStatus(statusRepository.findByCode("ADMIN_REJECTED"));
+            // 변경점: findByCode -> findByDomainAndCode
+            Status adminRejectedStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_REJECTED")
+                    .orElseThrow(StatusNotFoundException::new);
+            reportHistory.updateStatus(adminRejectedStatus);
             return;
         }
 
-        reportHistory.updateStatus(statusRepository.findByCode("ADMIN_ACCEPTED"));
+        // 변경점: findByCode -> findByDomainAndCode
+        Status adminAcceptedStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_ACCEPTED")
+                .orElseThrow(StatusNotFoundException::new);
+        reportHistory.updateStatus(adminAcceptedStatus);
 
         checkAndApplyRestriction(reportHistory.getUser(), reportHistory.getReportType());
     }
@@ -108,15 +114,12 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional
     public void createReportAndProcessWithAI(Long userId, Long transactionFeedId, Long reportTypeId, String reason) {
-
         ReportType reportType = reportTypeRepository.findById(reportTypeId)
                 .orElseThrow(ReportTypeNotFoundException::new);
-
         User user = userRepository.findById(userId)
-                        .orElseThrow(IllegalArgumentException::new);
-
+                .orElseThrow(UserNotFoundException::new);
         TransactionFeed transactionFeed = transactionFeedRepository.findById(transactionFeedId)
-                        .orElseThrow(IllegalArgumentException::new);
+                .orElseThrow(TransactionFeedNotFoundException::new);
 
         if(reportHistoryRepository.existsByUserAndSeller(user, transactionFeed.getUser())){
             throw new DuplicateReportException();
@@ -130,7 +133,6 @@ public class ReportServiceImpl implements ReportService {
         );
 
         AIReviewResponseDto aiResponse = aiReviewService.requestReview(requestDto);
-
         Status initialStatus = getReportHistoryStatus(aiResponse);
 
         ReportHistory newReport = ReportHistory.builder()
@@ -144,63 +146,57 @@ public class ReportServiceImpl implements ReportService {
                 .build();
         reportHistoryRepository.save(newReport);
 
-        if (initialStatus == statusRepository.findByCode("AI_ACCEPTED")) {
+        // 변경점: findByCode -> findByDomainAndCode
+        Status aiAcceptedStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED")
+                .orElseThrow(StatusNotFoundException::new);
+        if (initialStatus.equals(aiAcceptedStatus)) {
             checkAndApplyRestriction(user, reportType);
         }
     }
 
 
     private Status getReportHistoryStatus(AIReviewResponseDto aiResponse) {
-        Status initialStatus = null; // AI 응답에 따라 상태 결정
         if (aiResponse.getConfidence() < 0.8) {
-            initialStatus = statusRepository.findByCode("MODERATION_PENDING");
+            return statusRepository.findByDomainAndCode(REPORT,"PENDING")
+                    .orElseThrow(StatusNotFoundException::new);
         } else {
-            initialStatus = switch (aiResponse.getResult()) {
-                case "ACCEPT" -> statusRepository.findByCode("AI_ACCEPTED");
-                case "REJECT" -> statusRepository.findByCode("AI_REJECTED");
-                default -> statusRepository.findByCode("MODERATION_PENDING");
+            // 변경점: findByCode -> findByDomainAndCode
+            return switch (aiResponse.getResult()) {
+                case "ACCEPT" -> statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
+                case "REJECT" -> statusRepository.findByDomainAndCode(REPORT, "AI_REJECTED").orElseThrow(StatusNotFoundException::new);
+                default -> statusRepository.findByDomainAndCode(REPORT,"PENDING").orElseThrow(StatusNotFoundException::new);
             };
         }
-        return initialStatus;
     }
 
     private void checkAndApplyRestriction(User user, ReportType reportType) {
-        // 승인된 신고(AI, 관리자) 목록
-        Status aiAcceptStatus = statusRepository.findByCode("AI_ACCEPTED");
-        Status adminAcceptStatus = statusRepository.findByCode("ADMIN_ACCEPTED");
+        Status aiAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
+        Status adminAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_ACCEPTED").orElseThrow(StatusNotFoundException::new);
         List<Status> acceptedStatuses = List.of(aiAcceptStatus, adminAcceptStatus);
 
-        // 현재 승인된 건을 포함한 누적 위반 횟수 계산
         long violationCount = reportHistoryRepository.countByUserAndReportTypeAndStatusIn(user, reportType, acceptedStatuses);
-        RestrictionType restrictionType = null;
+        RestrictionType restrictionType;
 
         switch (reportType.getReportTypeId().intValue()) {
-            case 3: // 음란 내용 포함
-                restrictionType = restrictionTypeRepository.findById(2L)
-                                .orElseThrow(ReportTypeNotFoundException::new);
+            case 1:
+                if (violationCount >= 5) {
+                    restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
+                    applyRestriction(user, reportType, restrictionType.getContent(), restrictionType.getDuration());
+                }
+                break;
+            case 2:
+                if (violationCount >= 5) {
+                    restrictionType = restrictionTypeRepository.findById(4L).orElseThrow(RestrictionTypeNotFoundException::new);
+                    applyRestriction(user, reportType, restrictionType.getContent(), restrictionType.getDuration());
+                }
+                break;
+            case 3:
+                restrictionType = restrictionTypeRepository.findById(2L).orElseThrow(RestrictionTypeNotFoundException::new);
                 applyRestriction(user, reportType, restrictionType.getContent(), null);
                 break;
-
-            case 1: // 욕설 및 비속어 포함
-                if (violationCount >= 5) {
-                    restrictionType = restrictionTypeRepository.findById(1L)
-                            .orElseThrow(ReportTypeNotFoundException::new);
-                    applyRestriction(user, reportType, restrictionType.getContent(), restrictionType.getDuration());
-                }
-                break;
-
-            case 2: // 주제 관련 없음
-                if (violationCount >= 5) {
-                    restrictionType = restrictionTypeRepository.findById(4L)
-                            .orElseThrow(ReportTypeNotFoundException::new);
-                    applyRestriction(user, reportType, restrictionType.getContent(), restrictionType.getDuration());
-                }
-                break;
-
-            case 4: // 허위신고
+            case 4:
                 if (violationCount >= 3) {
-                    restrictionType = restrictionTypeRepository.findById(3L)
-                            .orElseThrow(ReportTypeNotFoundException::new);
+                    restrictionType = restrictionTypeRepository.findById(3L).orElseThrow(RestrictionTypeNotFoundException::new);
                     applyRestriction(user, reportType, restrictionType.getContent(), restrictionType.getDuration());
                 }
                 break;
@@ -208,22 +204,18 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private void applyRestriction(User user, ReportType reportType, String restrictionContent, Integer duration) {
-        // 제재 내용으로 제재 유형 조회
         RestrictionType restrictionType = restrictionTypeRepository.findByContent(restrictionContent)
                 .orElseThrow(RestrictionTypeNotFoundException::new);
-
-        // 제재 만료일 계산
         LocalDateTime expiresAt = (duration == null) ? null : LocalDateTime.now().plusDays(duration);
-
-        // 제재 대상 생성 및 저장
+        Status status = statusRepository.findByDomainAndCode(RESTRICTION, "PENDING")
+                .orElseThrow(StatusNotFoundException::new);
         RestrictionTarget restriction = RestrictionTarget.builder()
                 .user(user)
                 .reportType(reportType)
                 .restrictionType(restrictionType)
-                .status(statusRepository.findByCode("PENDING"))
+                .status(status)
                 .expiresAt(expiresAt)
                 .build();
-
         restrictionTargetRepository.save(restriction);
     }
 
@@ -233,26 +225,23 @@ public class ReportServiceImpl implements ReportService {
         if (restrictionTargetIds == null || restrictionTargetIds.isEmpty()) {
             return;
         }
-        restrictionTargetRepository.updateStatusForIds(
-                restrictionTargetIds,
-                statusRepository.findByCode("RESTRICT_EXPIRATION")
-        );
+        Status expiredStatus = statusRepository.findByDomainAndCode(RESTRICTION, "RESTRICT_EXPIRATION")
+                .orElseThrow(StatusNotFoundException::new);
+        restrictionTargetRepository.updateStatusForIds(restrictionTargetIds, expiredStatus);
     }
 
     @Override
     public RestrictExpiredResponseDto getRestrictExpiredList() {
-        // 1. 현재 시간을 기준으로 만료된 'ACCEPTED' 상태의 제재 기록을 조회
+        Status completedStatus = statusRepository.findByDomainAndCode(RESTRICTION, "COMPLETED")
+                .orElseThrow(StatusNotFoundException::new);
+
         List<RestrictionTarget> expiredTargets = restrictionTargetRepository.findExpiredRestrictions(
                 LocalDateTime.now(),
-                statusRepository.findByCode("COMPLETED")
+                completedStatus
         );
-
-        // 2. 각 제재 기록을 ExpiredRestrictionInfo DTO로 변환
         List<RestrictExpiredResponseDto.ExpiredRestrictionInfo> expiredInfoList = expiredTargets.stream()
                 .map(RestrictExpiredResponseDto.ExpiredRestrictionInfo::from)
                 .toList();
-
-        // 3. 최종 DTO에 담아 반환
         return new RestrictExpiredResponseDto(expiredInfoList);
     }
 }
