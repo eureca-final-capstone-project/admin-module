@@ -172,16 +172,10 @@ public class ReportServiceImpl implements ReportService {
         RestrictionType restrictionType = null;
 
         switch (reportType.getReportTypeId().intValue()) {
-            case 3: // 음란 내용 포함
-                restrictionType = restrictionTypeRepository.findById(2L)
-                                .orElseThrow(ReportTypeNotFoundException::new);
-                applyRestriction(user, reportType, restrictionType.getContent(), null);
-                break;
-
             case 1: // 욕설 및 비속어 포함
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(1L)
-                            .orElseThrow(ReportTypeNotFoundException::new);
+                            .orElseThrow(RestrictionTypeNotFoundException::new);
                     applyRestriction(user, reportType, restrictionType.getContent(), restrictionType.getDuration());
                 }
                 break;
@@ -189,15 +183,21 @@ public class ReportServiceImpl implements ReportService {
             case 2: // 주제 관련 없음
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(4L)
-                            .orElseThrow(ReportTypeNotFoundException::new);
+                            .orElseThrow(RestrictionTypeNotFoundException::new);
                     applyRestriction(user, reportType, restrictionType.getContent(), restrictionType.getDuration());
                 }
+                break;
+
+            case 3: // 음란 내용 포함
+                restrictionType = restrictionTypeRepository.findById(2L)
+                                .orElseThrow(RestrictionTypeNotFoundException::new);
+                applyRestriction(user, reportType, restrictionType.getContent(), null);
                 break;
 
             case 4: // 허위신고
                 if (violationCount >= 3) {
                     restrictionType = restrictionTypeRepository.findById(3L)
-                            .orElseThrow(ReportTypeNotFoundException::new);
+                            .orElseThrow(RestrictionTypeNotFoundException::new);
                     applyRestriction(user, reportType, restrictionType.getContent(), restrictionType.getDuration());
                 }
                 break;
@@ -212,12 +212,15 @@ public class ReportServiceImpl implements ReportService {
         // 제재 만료일 계산
         LocalDateTime expiresAt = (duration == null) ? null : LocalDateTime.now().plusDays(duration);
 
+        Status status = statusRepository.findByDomainAndCode("RESTRICTION", "PENDING")
+                .orElseThrow(StatusNotFoundException::new);
+
         // 제재 대상 생성 및 저장
         RestrictionTarget restriction = RestrictionTarget.builder()
                 .user(user)
                 .reportType(reportType)
                 .restrictionType(restrictionType)
-                .status(statusRepository.findByCode("PENDING"))
+                .status(status)
                 .expiresAt(expiresAt)
                 .build();
 

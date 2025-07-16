@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class ReportServiceTest {
+class ReportServiceTest {
 
     @Mock
     private ReportHistoryRepository reportHistoryRepository;
@@ -284,22 +284,33 @@ public class ReportServiceTest {
         // given
         ReportType reportType = ReportType.builder()
                 .reportTypeId(1L)
-                .type("욕설 및 비속어 포함 ")
+                .type("욕설 및 비속어 포함")
                 .build();
 
         RestrictionType restrictionType = RestrictionType.builder()
                 .restrictionTypeId(1L)
-                .content("게시글 작성 제한(7일)")
+                .content("게시글 작성 제한")
                 .duration(7)
                 .build();
+        // 이 부분을 추가해야 합니다.
+        Status pendingStatus = Status.builder()
+                .statusId(1L)
+                .domain("RESTRICTION")
+                .code("PENDING")
+                .description("제재 대기중")
+                .build();
 
-        when(restrictionTypeRepository.findByContent("게시글 작성 제한(7일)")).thenReturn(Optional.of(restrictionType));
+        when(statusRepository.findByDomainAndCode("RESTRICTION", "PENDING"))
+                .thenReturn(Optional.of(pendingStatus));
+
+
+        when(restrictionTypeRepository.findByContent("게시글 작성 제한")).thenReturn(Optional.of(restrictionType));
 
         // when
-        ReflectionTestUtils.invokeMethod(reportService,"applyRestriction",user1, reportType, "게시글 작성 제한(7일)", 7);
+        ReflectionTestUtils.invokeMethod(reportService,"applyRestriction",user1, reportType, "게시글 작성 제한", 7);
 
         // then
-        verify(restrictionTypeRepository).findByContent("게시글 작성 제한(7일)");
+        verify(restrictionTypeRepository).findByContent("게시글 작성 제한");
         verify(restrictionTargetRepository).save(any(RestrictionTarget.class));
     }
 
