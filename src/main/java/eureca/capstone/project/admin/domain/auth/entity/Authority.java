@@ -19,5 +19,6 @@ public class Authority extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long authority_id;
 
+    // 권한 이름
     private String name;
 }
