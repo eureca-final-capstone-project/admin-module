@@ -185,7 +185,6 @@ public class ReportServiceImpl implements ReportService {
             return statusRepository.findByDomainAndCode(REPORT,"PENDING")
                     .orElseThrow(StatusNotFoundException::new);
         } else {
-            // 변경점: findByCode -> findByDomainAndCode
             return switch (aiResponse.getResult()) {
                 case "ACCEPT" -> statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
                 case "REJECT" -> statusRepository.findByDomainAndCode(REPORT, "AI_REJECTED").orElseThrow(StatusNotFoundException::new);
