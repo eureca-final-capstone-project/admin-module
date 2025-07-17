@@ -4,6 +4,8 @@ import eureca.capstone.project.admin.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.admin.auth.service.TokenService;
 import eureca.capstone.project.admin.auth.util.CookieUtil;
 import eureca.capstone.project.admin.auth.util.JwtUtil;
+import eureca.capstone.project.admin.common.constant.RedisConstant;
+import eureca.capstone.project.admin.common.service.RedisService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +42,7 @@ public class TokenServiceImpl implements TokenService {
 
         // Refresh 토큰 Response 헤더에 할당 및 레디스에 저장 (14일 보관)
         cookieUtil.createRefreshTokenCookie(refreshToken, httpServletResponse);
-        redisService.setValue(RedisRefreshToken + userId, refreshToken, Duration.ofDays(14));
+        redisService.setValue(RedisConstant.REDIS_REFRESH_TOKEN + userId, refreshToken, Duration.ofDays(14));
 
         // return
         return accessToken;

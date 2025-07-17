@@ -4,6 +4,7 @@ import eureca.capstone.project.admin.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.admin.auth.dto.request.LoginRequestDto;
 import eureca.capstone.project.admin.auth.dto.response.LoginResponseDto;
 import eureca.capstone.project.admin.auth.service.TokenService;
+import eureca.capstone.project.admin.common.constant.RedisConstant;
 import eureca.capstone.project.admin.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.admin.common.service.RedisService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -57,7 +58,7 @@ public class AuthController {
         // 요청 값 로그 출력
         log.info("customUserDetailsDto: {}", customUserDetailsDto);
         // Refresh Token 삭제
-        redisService.deleteValue(RedisConstant.RedisRefreshToken + customUserDetailsDto.getUserId());
+        redisService.deleteValue(RedisConstant.REDIS_REFRESH_TOKEN + customUserDetailsDto.getUserId());
         // 반환값 생성 및 출력
         BaseResponseDto<Void> success = BaseResponseDto.voidSuccess();
         log.info("success: {}", success);

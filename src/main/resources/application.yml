@@ -18,6 +18,11 @@ spring:
         completions-path: /chat/completions
         options:
           model: gemini-2.0-flash
+  data:
+    redis:
+      host: 13.124.223.23
+      port: 6379
+      password: ureca!#%!#
 
 springdoc:
   packages-to-scan: eureca.capstone.project.admin
