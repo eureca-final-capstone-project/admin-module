@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/admin/auth")
+@RequestMapping("/admin/auth")
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final TokenService tokenService;
