@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Tag(name = "사용자 관리 API", description = "사용자 목록 조회 및 상태 변경 API")
-@RequestMapping("/api/admin/users")
+@RequestMapping("/admin/users")
 @RestController
 @RequiredArgsConstructor
 public class UserController {

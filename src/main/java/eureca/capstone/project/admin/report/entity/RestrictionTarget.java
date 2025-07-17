@@ -48,5 +48,13 @@ public class RestrictionTarget {
         this.status = status;
         this.expiresAt = expiresAt;
     }
+
+    public void updateStatus(Status status) {
+        this.status = status;
+    }
+
+    public void updateExpiresAt(LocalDateTime expiresAt) {
+        this.expiresAt = expiresAt;
+    }
 }
 

@@ -18,6 +18,11 @@ spring:
         completions-path: /chat/completions
         options:
           model: gemini-2.0-flash
+  data:
+    redis:
+      host: 13.124.223.23
+      port: 6379
+      password: ureca!#%!#
 
 springdoc:
   packages-to-scan: eureca.capstone.project.admin
@@ -28,3 +33,6 @@ springdoc:
     disable-swagger-default-url: true
     display-request-duration: true
     operations-sorter: alpha
+
+jwt:
+  secret: 2be68ad14b262737e35b39066a52a326e0db535cd4b3652e740b4a67cdea302648f7a8e8cedacb879134745f1b3d72c6093fa6049faaf8c7f2a45ce0e177f49
