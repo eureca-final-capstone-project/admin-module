@@ -6,6 +6,17 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {
+    // auth 관련 에러코드 (10000 ~ 19999)
+    UNKNOWN_ERROR(10000, "UNKNOWN_ERROR", "알수없는 에러"),
+    TOKEN_EXPIRED(10001, "TOKEN_EXPIRED", "Access Token 만료"),
+    INVALID_SIGNATURE(10002, "INVALID_SIGNATURE", "JWT 서명 오류"),
+    MALFORMED_TOKEN(10003, "MALFORMED_TOKEN", "JWT 구조 오류"),
+    MISSING_TOKEN(10004, "MISSING_TOKEN", "JWT 누락"),
+    REFRESH_TOKEN_MISMATCH(10005, "REFRESH_TOKEN_MISMATCH", "Redis 에 저장된 Refresh Token, 요청값의 Refresh Token 값 불일치"),
+    EMAIL_TOKEN_MISMATCH(10006, "REFRESH_TOKEN_MISMATCH", "Redis 에 저장된 Email Token, 요청값의 Email Token 값 불일치"),
+    BLACK_LIST_USER_FOUND(10007, "BLACK_LIST_USER_FOUND", "해당 사용자는 BlackList 포함된 사용자 입니다."),
+
+    // admin 관련 에러코드 (70000~79999)
     INVALID_ENUM_VALUE(70001, "INVALID_ENUM_VALUE", "유효하지 않은 요청 값입니다."), // <-- 추가된 코드
     ALREADY_PROCESSED_REPORT(70002, "ALREADY_PROCESSED_REPORT", "이미 처리된 신고입니다."),
 

@@ -19,6 +19,14 @@ public class BaseResponseDto<T> {
                 .build();
     }
 
+    public static BaseResponseDto<Void> voidSuccess() {
+        return BaseResponseDto.<Void>builder()
+                .statusCode(200)
+                .message("success")
+                .data(null)
+                .build();
+    }
+
     public static BaseResponseDto<ErrorResponseDto> fail(ErrorCode errorCode) {
         return BaseResponseDto.<ErrorResponseDto>builder()
                 .statusCode(errorCode.getCode())
