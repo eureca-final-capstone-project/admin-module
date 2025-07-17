@@ -20,4 +20,9 @@ public interface ReportService {
     void createReportAndProcessWithAI(Long userId, Long transactionFeedId, Long reportTypeId, String reason);
     RestrictExpiredResponseDto getRestrictExpiredList();
     void expireRestrictions(List<Long> restrictionTargetIds);
+    // 제재 승인: 제재 대상에 올라온 사용자를 승인하면
+    // 1. 상태: 제재중,
+    // 2. restriction_type: 자동설정된거,
+    // 3. expires_at: 만료일
+    //
 }
