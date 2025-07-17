@@ -1,5 +1,7 @@
 package eureca.capstone.project.admin.report.entity;
 
+import eureca.capstone.project.admin.auth.entity.Authority;
+import eureca.capstone.project.admin.common.entity.Status;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -23,11 +25,16 @@ public class RestrictionType {
     @Column(nullable = false)
     private Integer duration;
 
+    @JoinColumn(name = "authority_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Authority authority;
+
     @Builder
-    public RestrictionType(Long restrictionTypeId, String content, Integer duration) {
+    public RestrictionType(Long restrictionTypeId, String content, Integer duration, Authority authority) {
         this.restrictionTypeId = restrictionTypeId;
         this.content = content;
         this.duration = duration;
+        this.authority = authority;
     }
 }
 

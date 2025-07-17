@@ -81,4 +81,18 @@ public class ReportController {
         reportService.expireRestrictions(request.getRestrictionTargetIds());
         return BaseResponseDto.success(null);
     }
+
+    @Operation(summary = "제재 승인", description = "관리자 제재 승인 api 입니다.")
+    @PatchMapping("/restrict/{id}/accept")
+    public BaseResponseDto<Void> acceptRestriction(@PathVariable("id") Long restrictionTargetId) {
+        reportService.acceptRestrictions(restrictionTargetId);
+        return BaseResponseDto.success(null);
+    }
+
+    @Operation(summary = "제재 미승인", description = "관리자 제재 미승인(거절) api 입니다.")
+    @PatchMapping("/restrict/{id}/reject")
+    public BaseResponseDto<Void> rejectRestriction(@PathVariable("id") Long restrictionTargetId) {
+        reportService.rejectRestrictions(restrictionTargetId);
+        return BaseResponseDto.success(null);
+    }
 }
