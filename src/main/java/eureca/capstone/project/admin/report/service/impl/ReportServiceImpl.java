@@ -126,8 +126,9 @@ public class ReportServiceImpl implements ReportService {
                 .orElseThrow(UserNotFoundException::new);
         TransactionFeed transactionFeed = transactionFeedRepository.findById(transactionFeedId)
                 .orElseThrow(TransactionFeedNotFoundException::new);
+        User seller = transactionFeed.getUser();
 
-        if(reportHistoryRepository.existsByUserAndSeller(user, transactionFeed.getUser())){
+        if(reportHistoryRepository.existsByUserAndSeller(user, seller)){
             throw new DuplicateReportException();
         }
 
@@ -142,9 +143,9 @@ public class ReportServiceImpl implements ReportService {
         Status initialStatus = getReportHistoryStatus(aiResponse);
 
         ReportHistory newReport = ReportHistory.builder()
-                .user(user)
+                .user(user) // 신고자
                 .transactionFeed(transactionFeed)
-                .seller(transactionFeed.getUser())
+                .seller(seller) // 피신고자
                 .reportType(reportType)
                 .reason(reason)
                 .isModerated(true)
@@ -156,7 +157,7 @@ public class ReportServiceImpl implements ReportService {
         Status aiAcceptedStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED")
                 .orElseThrow(StatusNotFoundException::new);
         if (initialStatus.equals(aiAcceptedStatus)) {
-            checkAndApplyRestriction(user, reportType);
+            checkAndApplyRestriction(seller, reportType);
         }
     }
 
@@ -175,47 +176,47 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
-    private void checkAndApplyRestriction(User user, ReportType reportType) {
+    private void checkAndApplyRestriction(User seller, ReportType reportType) {
         Status aiAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
         Status adminAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_ACCEPTED").orElseThrow(StatusNotFoundException::new);
         List<Status> acceptedStatuses = List.of(aiAcceptStatus, adminAcceptStatus);
 
-        long violationCount = reportHistoryRepository.countByUserAndReportTypeAndStatusIn(user, reportType, acceptedStatuses);
+        long violationCount = reportHistoryRepository.countBySellerAndReportTypeAndStatusIn(seller, reportType, acceptedStatuses);
         RestrictionType restrictionType;
 
         switch (reportType.getReportTypeId().intValue()) {
             case 1 -> { // 욕설 및 비속어
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    applyRestriction(user, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType);
                 }
             }
             case 2 -> {  // 주제 불일치
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(4L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    applyRestriction(user, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType);
                 }
             }
             case 3 -> { // 음란 내용 포함
                 restrictionType = restrictionTypeRepository.findById(2L).orElseThrow(RestrictionTypeNotFoundException::new);
-                applyRestriction(user, reportType, restrictionType);
+                applyRestriction(seller, reportType, restrictionType);
             }
             case 4 -> { // 외부 채널 유도
                 if (violationCount >= 3) {
                     restrictionType = restrictionTypeRepository.findById(3L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    applyRestriction(user, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType);
                 }
             }
             case 5 -> { // 중복 게시글
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    applyRestriction(user, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType);
                 }
             }
             case 6 -> { // 비방/저격 포함
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    applyRestriction(user, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType);
                 }
             }
         }
