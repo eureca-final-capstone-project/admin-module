@@ -20,4 +20,6 @@ public interface ReportService {
     void createReportAndProcessWithAI(Long userId, Long transactionFeedId, Long reportTypeId, String reason);
     RestrictExpiredResponseDto getRestrictExpiredList();
     void expireRestrictions(List<Long> restrictionTargetIds);
+    void acceptRestrictions(Long restrictionTargetId);
+    void rejectRestrictions(Long restrictionTargetId);
 }
