@@ -24,5 +24,5 @@ public interface ReportService {
     // 1. 상태: 제재중,
     // 2. restriction_type: 자동설정된거,
     // 3. expires_at: 만료일
-    //
+    void acceptRestrictions(Long restrictionTargetId);
 }

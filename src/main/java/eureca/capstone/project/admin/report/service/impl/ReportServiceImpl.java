@@ -1,8 +1,12 @@
 package eureca.capstone.project.admin.report.service.impl;
 
+import eureca.capstone.project.admin.auth.entity.Authority;
+import eureca.capstone.project.admin.auth.entity.UserAuthority;
+import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
 import eureca.capstone.project.admin.common.entity.StatusConst;
 import eureca.capstone.project.admin.common.exception.custom.*;
 import eureca.capstone.project.admin.common.repository.StatusRepository;
+import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.admin.user.repository.UserRepository;
 import eureca.capstone.project.admin.report.entity.ReportHistory;
@@ -46,6 +50,8 @@ public class ReportServiceImpl implements ReportService {
     private final TransactionFeedRepository transactionFeedRepository;
     private final StatusRepository statusRepository;
     private final AIReviewService aiReviewService;
+    private final StatusManager statusManager;
+    private final UserAuthorityRepository userAuthorityRepository;
 
     @Override
     public ReportCountDto getReportCounts() {
@@ -215,9 +221,10 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
+    // TODO: expiresAt 계산을 여기 말고 실제 제재 승인시 하기. 여기선 그냥 null로.
     private void applyRestriction(User user, ReportType reportType, RestrictionType restrictionType) {
-        Integer duration = restrictionType.getDuration();
-        LocalDateTime expiresAt = (duration == -1) ? null : LocalDateTime.now().plusDays(duration);
+//        Integer duration = restrictionType.getDuration();
+//        LocalDateTime expiresAt = (duration == -1) ? null : LocalDateTime.now().plusDays(duration);
         Status status = statusRepository.findByDomainAndCode(RESTRICTION, "PENDING")
                 .orElseThrow(StatusNotFoundException::new);
         RestrictionTarget restriction = RestrictionTarget.builder()
@@ -225,7 +232,6 @@ public class ReportServiceImpl implements ReportService {
                 .reportType(reportType)
                 .restrictionType(restrictionType)
                 .status(status)
-                .expiresAt(expiresAt)
                 .build();
         restrictionTargetRepository.save(restriction);
     }
@@ -239,6 +245,60 @@ public class ReportServiceImpl implements ReportService {
         Status expiredStatus = statusRepository.findByDomainAndCode(RESTRICTION, "RESTRICT_EXPIRATION")
                 .orElseThrow(StatusNotFoundException::new);
         restrictionTargetRepository.updateStatusForIds(restrictionTargetIds, expiredStatus);
+    }
+
+    /* TODO
+        ** authority 테이블의 권한 - 제재 타입 관계 설정해야댈듯. authority를 restriction_type에 fk로
+        * authority | 제재타입
+        * WRITE | 1, 4
+        * NOTICE | 2 <-- everything으로 할까?
+        * TRANSACTION | 3
+        *
+        1. user_authority 테이블을 authorityId로 뒤진다. -> 제재해야 할 권한과 같은 권한이 이미 있다 -> 해당 일자 + DURATION
+            user_authority 테이블에 update
+        2. user_authority 테이블을 authorityId로 뒤진다. -> 제재해야 할 권한과 같은 권한이 없다 -> 현재날짜 + DURATION
+            user_authority 테이블에 insert.
+        *
+        *
+        *
+     */
+    @Transactional
+    @Override
+    public void acceptRestrictions(Long restrictionTargetId) {
+        RestrictionTarget restrictionTarget = restrictionTargetRepository.findById(restrictionTargetId)
+                .orElseThrow(RestrictionTargetNotFoundException::new);
+        User user = restrictionTarget.getUser();
+        Integer duration = restrictionTarget.getRestrictionType().getDuration();
+
+        // 제재 만료일
+        LocalDateTime expiresAt;
+
+        if (duration == -1) {
+            expiresAt = null;
+        }
+        else{
+            Authority authority = restrictionTarget.getRestrictionType().getAuthority();
+
+            UserAuthority userAuthority = userAuthorityRepository.findByUserAndAuthority(user, authority);
+
+            // 해당 권한에 대한 제재내역이 없는 경우
+            if(userAuthority == null){
+                expiresAt = LocalDateTime.now().plusDays(duration);
+                userAuthorityRepository.save(
+                        UserAuthority.builder()
+                            .user(user)
+                            .authority(authority)
+                            .expiredAt(expiresAt)
+                            .build());
+            }
+            // 해당 권한에 대해 이미 제재받은 경우
+            else{
+                expiresAt = userAuthority.getExpiredAt().plusDays(duration);
+                userAuthority.updateExpiresAt(expiresAt);
+            }
+        }
+        restrictionTarget.updateExpiresAt(expiresAt);
+        restrictionTarget.updateStatus(statusManager.getStatus("RESTRICTION", "COMPLETED"));
     }
 
     @Override

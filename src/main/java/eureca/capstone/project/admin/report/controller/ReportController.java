@@ -80,4 +80,10 @@ public class ReportController {
         reportService.expireRestrictions(request.getRestrictionTargetIds());
         return BaseResponseDto.success(null);
     }
+
+    @PatchMapping("/restrict/{id}/accept")
+    public BaseResponseDto<Void> acceptRestriction(@PathVariable("id") Long restrictionTargetId) {
+        reportService.acceptRestrictions(restrictionTargetId);
+        return BaseResponseDto.success(null);
+    }
 }
