@@ -305,14 +305,10 @@ class ReportServiceTest {
         when(statusRepository.findByDomainAndCode("RESTRICTION", "PENDING"))
                 .thenReturn(Optional.of(pendingStatus));
 
-
-        when(restrictionTypeRepository.findByContent("게시글 작성 제한")).thenReturn(Optional.of(restrictionType));
-
         // when
-        ReflectionTestUtils.invokeMethod(reportService,"applyRestriction",user1, reportType, "게시글 작성 제한", 7);
+        ReflectionTestUtils.invokeMethod(reportService,"applyRestriction",user1, reportType, restrictionType);
 
         // then
-        verify(restrictionTypeRepository).findByContent("게시글 작성 제한");
         verify(restrictionTargetRepository).save(any(RestrictionTarget.class));
     }
 
