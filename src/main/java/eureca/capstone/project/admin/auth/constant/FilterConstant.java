@@ -13,5 +13,5 @@ public final class FilterConstant {
         "/**"
     };
 
-    public static final String REFRESH_PATH = "/auth/reissue";
+    public static final String REFRESH_PATH = "api/admin/auth/reissue";
 }

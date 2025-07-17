@@ -1,10 +1,10 @@
 package eureca.capstone.project.admin.auth.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eureca.capstone.project.admin.auth.constant.FilterConstant;
 import eureca.capstone.project.admin.auth.filter.JwtAuthenticationFilter;
 import eureca.capstone.project.admin.auth.util.CookieUtil;
 import eureca.capstone.project.admin.auth.util.JwtUtil;
-import eureca.capstone.project.admin.common.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -28,7 +28,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
-    private final RedisService redisService;
 
     private final AuthenticationEntryPoint customAuthenticationEntryPoint;
     private final AccessDeniedHandler customAccessDeniedHandler;
@@ -47,7 +46,7 @@ public class SecurityConfig {
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtUtil, cookieUtil, redisService),
+                        new JwtAuthenticationFilter(jwtUtil, cookieUtil),
                         UsernamePasswordAuthenticationFilter.class
                 )
                 .exceptionHandling(ex -> ex
