@@ -30,10 +30,11 @@ public class RestrictionType {
     private Authority authority;
 
     @Builder
-    public RestrictionType(Long restrictionTypeId, String content, Integer duration) {
+    public RestrictionType(Long restrictionTypeId, String content, Integer duration, Authority authority) {
         this.restrictionTypeId = restrictionTypeId;
         this.content = content;
         this.duration = duration;
+        this.authority = authority;
     }
 }
 

@@ -1,5 +1,9 @@
 package eureca.capstone.project.admin.report.service;
 
+import eureca.capstone.project.admin.auth.entity.Authority;
+import eureca.capstone.project.admin.auth.entity.UserAuthority;
+import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
+import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.report.entity.ReportHistory;
 import eureca.capstone.project.admin.report.entity.ReportType;
 import eureca.capstone.project.admin.report.entity.RestrictionTarget;
@@ -50,7 +54,13 @@ class ReportServiceTest {
     private RestrictionTargetRepository restrictionTargetRepository;
 
     @Mock
+    private UserAuthorityRepository userAuthorityRepository;
+
+    @Mock
     private RestrictionTypeRepository restrictionTypeRepository;
+
+    @Mock
+    private StatusManager statusManager;
 
     @Mock
     private StatusRepository statusRepository;
@@ -354,7 +364,6 @@ class ReportServiceTest {
     @DisplayName("제재 만료 대상 조회_성공")
     void getRestrictExpiredList_Success() {
         // given
-        // ... (내용 변경 없음) ...
         RestrictionTarget expired1 = RestrictionTarget.builder().user(user1).reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build()).restrictionType(RestrictionType.builder().content("게시글 작성 제한(7일)").duration(7).build()).status(Status.builder().code("COMPLETED").build()).expiresAt(LocalDateTime.now().minusDays(1)).build();
         RestrictionTarget expired2 = RestrictionTarget.builder().user(user2).reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build()).restrictionType(RestrictionType.builder().content("게시글 작성 제한(7일)").duration(7).build()).status(Status.builder().code("COMPLETED").build()).expiresAt(LocalDateTime.now()).build();
 
@@ -373,5 +382,126 @@ class ReportServiceTest {
         verify(restrictionTargetRepository).findExpiredRestrictions(any(LocalDateTime.class), eq(completed));
         verifyNoMoreInteractions(restrictionTargetRepository);
     }
+
+
+    @DisplayName("제재 승인_영구정지일 경우 사용자 상태만 변경")
+    @Test
+    void acceptRestrictions_Restriction_Success() {
+        // given
+        RestrictionTarget restrictionTarget = RestrictionTarget.builder()
+                .restrictionType(RestrictionType.builder().duration(-1).build())
+                .user(user1)
+                .build();
+
+        ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
+
+        Status bannedStatus = Status.builder().domain("USER").code("BANNED").build();
+        Status completedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
+        when(statusManager.getStatus("USER", "BANNED")).thenReturn(bannedStatus);
+        when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
+        when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
+
+        // when
+        reportService.acceptRestrictions(1L);
+
+        // then
+        assertEquals(bannedStatus, restrictionTarget.getUser().getStatus());
+        assertNull(restrictionTarget.getExpiresAt());
+        assertEquals(completedStatus, restrictionTarget.getStatus());
+    }
+
+    @DisplayName("제재 승인_userAuthority에 제재 권한 내역 없는 경우 신규 등록")
+    @Test
+    void acceptRestrictions_Restriction_newUserAuthority_success() {
+        // given
+        Authority authority = Authority.builder().build();
+        ReflectionTestUtils.setField(authority, "authority_id", 1L);
+
+        RestrictionType restrictionType = RestrictionType.builder()
+                .duration(7)
+                .authority(authority)
+                .build();
+
+        RestrictionTarget restrictionTarget = RestrictionTarget.builder()
+                .restrictionType(restrictionType)
+                .user(user1)
+                .build();
+        ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
+
+        Status completedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
+
+        when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
+        when(userAuthorityRepository.findByUserAndAuthority(user1, authority)).thenReturn(null);
+        when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
+
+        // when
+        reportService.acceptRestrictions(1L);
+
+        // then
+        verify(userAuthorityRepository).save(any(UserAuthority.class));
+        assertNotNull(restrictionTarget.getExpiresAt());
+        assertEquals(completedStatus, restrictionTarget.getStatus());
+    }
+
+    @DisplayName("제재 승인_userAuthority에 제재 권한 내역 없는 경우 기존 권한 제재 연장")
+    @Test
+    void acceptRestrictions_Restriction_extendUserAuthority_success() {
+        // given
+        Authority authority = Authority.builder().build();
+        RestrictionType restrictionType = RestrictionType.builder()
+                .duration(7)
+                .authority(authority)
+                .build();
+        ReflectionTestUtils.setField(authority, "authority_id", 1L);
+
+        LocalDateTime previousExpiry = LocalDateTime.now();
+        UserAuthority userAuthority = UserAuthority.builder()
+                .user(user1)
+                .authority(authority)
+                .expiredAt(previousExpiry)
+                .build();
+
+        RestrictionTarget restrictionTarget = RestrictionTarget.builder()
+                .restrictionType(restrictionType)
+                .user(user1)
+                .build();
+        ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
+
+        Status completedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
+
+        when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
+        when(userAuthorityRepository.findByUserAndAuthority(user1, authority)).thenReturn(userAuthority);
+        when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
+
+        // when
+        reportService.acceptRestrictions(1L);
+
+        // then
+        assertTrue(userAuthority.getExpiredAt().isAfter(previousExpiry));
+        assertEquals(completedStatus, restrictionTarget.getStatus());
+    }
+
+    @DisplayName("제재 거절_성공")
+    @Test
+    void rejectRestrictions_success() {
+        // given
+        RestrictionTarget restrictionTarget = RestrictionTarget.builder()
+                .user(user1)
+                .build();
+
+        ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
+
+        Status rejectedStatus = Status.builder().domain("RESTRICTION").code("REJECTED").build();
+
+        when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
+        when(statusManager.getStatus("RESTRICTION", "REJECTED")).thenReturn(rejectedStatus);
+
+        // when
+        reportService.rejectRestrictions(1L);
+
+        // then
+        assertEquals(rejectedStatus, restrictionTarget.getStatus());
+    }
+
 
 }
