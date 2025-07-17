@@ -114,7 +114,7 @@ public class ReportServiceImpl implements ReportService {
                 .orElseThrow(StatusNotFoundException::new);
         reportHistory.updateStatus(adminAcceptedStatus);
 
-        checkAndApplyRestriction(reportHistory.getUser(), reportHistory.getReportType());
+        checkAndApplyRestriction(reportHistory.getSeller(), reportHistory.getReportType());
     }
 
     @Override
@@ -222,10 +222,7 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
-    // TODO: expiresAt 계산을 여기 말고 실제 제재 승인시 하기. 여기선 그냥 null로.
     private void applyRestriction(User user, ReportType reportType, RestrictionType restrictionType) {
-//        Integer duration = restrictionType.getDuration();
-//        LocalDateTime expiresAt = (duration == -1) ? null : LocalDateTime.now().plusDays(duration);
         Status status = statusRepository.findByDomainAndCode(RESTRICTION, "PENDING")
                 .orElseThrow(StatusNotFoundException::new);
         RestrictionTarget restriction = RestrictionTarget.builder()
@@ -252,14 +249,13 @@ public class ReportServiceImpl implements ReportService {
         ** authority 테이블의 권한 - 제재 타입 관계 설정해야댈듯. authority를 restriction_type에 fk로
         * authority | 제재타입
         * WRITE | 1, 4
-        * NOTICE | 2 <-- everything으로 할까?
         * TRANSACTION | 3
         *
         1. user_authority 테이블을 authorityId로 뒤진다. -> 제재해야 할 권한과 같은 권한이 이미 있다 -> 해당 일자 + DURATION
             user_authority 테이블에 update
         2. user_authority 테이블을 authorityId로 뒤진다. -> 제재해야 할 권한과 같은 권한이 없다 -> 현재날짜 + DURATION
             user_authority 테이블에 insert.
-        *
+        * 영구정지 -> 회원상태를 block
         *
         *
      */
@@ -274,8 +270,10 @@ public class ReportServiceImpl implements ReportService {
         // 제재 만료일
         LocalDateTime expiresAt;
 
-        if (duration == -1) {
+        if (duration == -1) { // 영구정지일 경우 사용자 block
             expiresAt = null;
+            user.updateUserStatus(statusManager.getStatus("USER", "BANNED"));
+            log.info("영구정지 user {}", user.getStatus().getCode());
         }
         else{
             Authority authority = restrictionTarget.getRestrictionType().getAuthority();
