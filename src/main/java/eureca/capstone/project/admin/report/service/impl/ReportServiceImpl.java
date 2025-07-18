@@ -175,15 +175,6 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
-    /* TODO:
-        reportHistory에서 이미 제재대상에 들어간 신고는 count X.
-        신고테이블-제재테이블 fk로 연결
-        ** 신고내역에서도 제재가 완료됐는지 제재 상태 확인할 수 있어야 함.
-        ** 제재내역에서도 제재id로 신고내역 조회돼야 함.
-        제재 대상에 등록되기 전까지는 null로 들어감. 제재 하나당 여러개 신고 존재 가능 -> 제재(1) : 신고(n).
-        => 신고 횟수 조회할 때, restrictTarget이 null인 것만 count하면 될듯. [O]
-        => 제재 대상에 등록할 때 신고테이블에도 restrictionTarget 값 넣어줘야 함 (update)
-     */
     private void checkAndApplyRestriction(User seller, ReportType reportType) {
         Status aiAcceptStatus = statusManager.getStatus(REPORT, "AI_ACCEPTED");
         Status adminAcceptStatus = statusManager.getStatus(REPORT, "ADMIN_ACCEPTED");
