@@ -272,6 +272,14 @@ public class ReportServiceImpl implements ReportService {
     public void acceptRestrictions(Long restrictionTargetId) {
         RestrictionTarget restrictionTarget = restrictionTargetRepository.findById(restrictionTargetId)
                 .orElseThrow(RestrictionTargetNotFoundException::new);
+
+        Status completedStatus = statusRepository.findByDomainAndCode(RESTRICTION, "COMPLETED")
+                .orElseThrow(StatusNotFoundException::new);
+
+        if(restrictionTarget.getStatus().equals(completedStatus)) {
+            throw new AlreadyProcessedRestrictionException();
+        }
+
         User user = restrictionTarget.getUser();
         Integer duration = restrictionTarget.getRestrictionType().getDuration();
 
@@ -325,6 +333,13 @@ public class ReportServiceImpl implements ReportService {
     public void rejectRestrictions(Long restrictionTargetId) {
         RestrictionTarget restrictionTarget = restrictionTargetRepository.findById(restrictionTargetId)
                 .orElseThrow(RestrictionTargetNotFoundException::new);
+
+        Status rejectedStatus = statusRepository.findByDomainAndCode(RESTRICTION, "REJECTED")
+                .orElseThrow(StatusNotFoundException::new);
+
+        if(restrictionTarget.getStatus().equals(rejectedStatus)) {
+            throw new AlreadyProcessedRestrictionException();
+        }
 
         restrictionTarget.updateStatus(statusManager.getStatus("RESTRICTION", "REJECTED"));
         log.info("[acceptRestrictions] 제재 거절 완료. status: {}", restrictionTarget.getStatus().getCode());
