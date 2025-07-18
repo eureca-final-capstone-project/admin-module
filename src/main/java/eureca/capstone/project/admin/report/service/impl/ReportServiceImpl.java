@@ -264,8 +264,7 @@ public class ReportServiceImpl implements ReportService {
         RestrictionTarget restrictionTarget = restrictionTargetRepository.findById(restrictionTargetId)
                 .orElseThrow(RestrictionTargetNotFoundException::new);
 
-        Status completedStatus = statusRepository.findByDomainAndCode(RESTRICTION, "COMPLETED")
-                .orElseThrow(StatusNotFoundException::new);
+        Status completedStatus = statusManager.getStatus(RESTRICTION, "COMPLETED");
 
         if(restrictionTarget.getStatus().equals(completedStatus)) {
             throw new AlreadyProcessedRestrictionException();
@@ -325,8 +324,7 @@ public class ReportServiceImpl implements ReportService {
         RestrictionTarget restrictionTarget = restrictionTargetRepository.findById(restrictionTargetId)
                 .orElseThrow(RestrictionTargetNotFoundException::new);
 
-        Status rejectedStatus = statusRepository.findByDomainAndCode(RESTRICTION, "REJECTED")
-                .orElseThrow(StatusNotFoundException::new);
+        Status rejectedStatus = statusManager.getStatus(RESTRICTION, "REJECTED");
 
         if(restrictionTarget.getStatus().equals(rejectedStatus)) {
             throw new AlreadyProcessedRestrictionException();

@@ -472,8 +472,6 @@ class ReportServiceTest {
         Status completedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
         when(statusManager.getStatus("USER", "BANNED")).thenReturn(bannedStatus);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
-                .thenReturn(Optional.of(completedStatus));
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
 
         // when
@@ -510,8 +508,6 @@ class ReportServiceTest {
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
         when(userAuthorityRepository.findByUserAndAuthority(user1, authority)).thenReturn(null);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
-                .thenReturn(Optional.of(completedStatus));
 
         // when
         reportService.acceptRestrictions(1L);
@@ -553,8 +549,6 @@ class ReportServiceTest {
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
         when(userAuthorityRepository.findByUserAndAuthority(user1, authority)).thenReturn(userAuthority);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
-                .thenReturn(Optional.of(completedStatus));
         // when
         reportService.acceptRestrictions(1L);
 
@@ -568,16 +562,19 @@ class ReportServiceTest {
     void acceptRestrictions_Fail_AlreadyProcessedRestriction() {
         // given
         Status acceptedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
-
+        RestrictionType dummyRestrictionType = RestrictionType.builder()
+                .duration(7)
+                .build();
         RestrictionTarget restrictionTarget = RestrictionTarget.builder()
                 .user(user1)
                 .status(acceptedStatus)
+                .restrictionType(dummyRestrictionType)
                 .build();
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
 
+
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
-                .thenReturn(Optional.of(acceptedStatus));
+        when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(acceptedStatus);
 
         // when & then
         assertThrows(AlreadyProcessedRestrictionException.class,
@@ -598,8 +595,6 @@ class ReportServiceTest {
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
 
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "REJECTED"))
-                .thenReturn(Optional.of(rejectedStatus));
         when(statusManager.getStatus("RESTRICTION", "REJECTED"))
                 .thenReturn(rejectedStatus);
         // when
@@ -622,8 +617,8 @@ class ReportServiceTest {
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
 
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "REJECTED"))
-                .thenReturn(Optional.of(rejectedStatus));
+        when(statusManager.getStatus("RESTRICTION", "REJECTED"))
+                .thenReturn(rejectedStatus);
 
         // when & then
         assertThrows(AlreadyProcessedRestrictionException.class,
