@@ -29,9 +29,7 @@ public interface ReportHistoryRepository extends JpaRepository<ReportHistory, Lo
             "WHERE rh.seller=:seller AND rh.reportType=:type AND rh.status IN :status AND rh.restrictionTarget IS NULL")
     List<ReportHistory> findReportsToRestrict(@Param("seller") User seller, @Param("type") ReportType reportType, @Param("status") List<Status> statuses);
 
-    Page<ReportHistory> findByStatus(Status status, Pageable pageable);
-
     boolean existsByUserAndSeller(User user, User seller);
 
-
+    List<ReportHistory> findByRestrictionTarget(RestrictionTarget restrictionTarget);
 }

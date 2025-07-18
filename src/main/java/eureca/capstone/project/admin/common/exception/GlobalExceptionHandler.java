@@ -61,9 +61,27 @@ public class GlobalExceptionHandler {
         return BaseResponseDto.fail(ErrorCode.STATUS_NOT_FOUND);
     }
 
+    @ExceptionHandler(AlreadyProcessedRestrictionException.class)
+    public BaseResponseDto<ErrorResponseDto> handleAlreadyProcessedRestrictionExceptionn(AlreadyProcessedRestrictionException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.ALREADY_PROCESSED_RESTRICTION);
+    }
+
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public BaseResponseDto<ErrorResponseDto> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.INVALID_ENUM_VALUE);
+    }
+
+    @ExceptionHandler(RestrictionTargetNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handleRestrictionTargetNotFoundException(RestrictionTargetNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.RESTRICTION_TARGET_NOT_FOUND);
+    }
+
+    @ExceptionHandler(TransactionFeedNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handleTransactionFeedNotFoundException(TransactionFeedNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.TRANSACTION_FEED_NOT_FOUND);
     }
 }
