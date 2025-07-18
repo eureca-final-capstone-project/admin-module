@@ -1,5 +1,6 @@
 package eureca.capstone.project.admin.report.controller;
 
+import eureca.capstone.project.admin.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.admin.report.dto.request.CreateReportRequestDto;
 import eureca.capstone.project.admin.report.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.report.dto.request.UpdateRestrictionStatusRequestDto;
@@ -12,7 +13,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "신고/제재 API", description = "사용자 신고 접수 및 관리자 기능 API")
 @RestController
@@ -33,8 +37,10 @@ public class ReportController {
     public BaseResponseDto<Page<ReportHistoryDto>> getReportHistoryList(
             @Parameter(description = "필터링할 신고 상태 <br>(PENDING, AI_ACCEPTED, AI_REJECTED, ADMIN_ACCEPTED, ADMIN_REJECTED, COMPLETED, REJECTED)")
             @RequestParam(required = false) String statusCode,
+            @Parameter(description = "검색어 (신고자 이메일)")
+            @RequestParam(required = false) String keyword,
             Pageable pageable) {
-        return BaseResponseDto.success(reportService.getReportHistoryListByStatusCode(statusCode, pageable));
+        return BaseResponseDto.success(reportService.getReportHistoryListByStatusCode(statusCode, keyword, pageable));
     }
 
     @Operation(summary = "신고 내역 상세 조회", description = "신고 내역을 상세 조회합니다.")
@@ -47,15 +53,23 @@ public class ReportController {
     @GetMapping("/restrictions")
     public BaseResponseDto<Page<RestrictionDto>> getRestrictionList(
             @Parameter(description = "필터링할 제재 상태 (PENDING, COMPLETED, REJECTED)") @RequestParam(required = false) String statusCode,
+            @Parameter(description = "검색어 (신고자 이메일)") @RequestParam(required = false) String keyword,
             Pageable pageable) {
-        return BaseResponseDto.success(reportService.getRestrictionListByStatusCode(statusCode, pageable));
+        return BaseResponseDto.success(reportService.getRestrictionListByStatusCode(statusCode,keyword, pageable));
+    }
+
+    @Operation(summary = "제재 ID로 신고 내역 조회", description = "제재 ID를 통해 연관된 신고 내역을 조회합니다.")
+    @GetMapping("restricts/{restrictId}/report-list")
+    public BaseResponseDto<List<RestrictionReportResponseDto>> getRestrictionReportHistory(@PathVariable("restrictId") Long restrictId) {
+        return BaseResponseDto.success(reportService.getRestrictionReportHistory(restrictId));
     }
 
     @Operation(summary = "게시글 신고 접수", description = "사용자가 게시글을 신고하면 AI가 1차 검토 후 접수합니다.")
     @PostMapping("/reports")
-    public BaseResponseDto<Void> createReport(@RequestBody CreateReportRequestDto request) {
+    public BaseResponseDto<Void> createReport(@RequestBody CreateReportRequestDto request,
+                                              @AuthenticationPrincipal CustomUserDetailsDto userDetailsDto) {
         reportService.createReportAndProcessWithAI(
-                request.getUserId(),
+                userDetailsDto.getUserId(),
                 request.getTransactionFeedId(),
                 request.getReportTypeId(),
                 request.getReason()

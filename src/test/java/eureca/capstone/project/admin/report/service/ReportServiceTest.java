@@ -4,6 +4,7 @@ import eureca.capstone.project.admin.auth.entity.Authority;
 import eureca.capstone.project.admin.auth.entity.UserAuthority;
 import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
 import eureca.capstone.project.admin.common.exception.custom.ReportNotFoundException;
+import eureca.capstone.project.admin.common.exception.custom.RestrictionTargetNotFoundException;
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.report.dto.response.*;
 import eureca.capstone.project.admin.report.entity.ReportHistory;
@@ -81,41 +82,49 @@ class ReportServiceTest {
     @BeforeEach
     void setUp() {
         pageable = PageRequest.of(0, 10); // 페이지 번호 0, 사이즈 10
-        user1 = User.builder().userId(100L).build();
+        user1 = User.builder().userId(100L).email("reporter@example.com").nickname("신고자1").build();
         transactionFeed1 = TransactionFeed.builder().build();
         user2 = User.builder().userId(101L).build();
         transactionFeed2 = TransactionFeed.builder().build();
 
         report1 = ReportHistory.builder()
                 .user(user1)
+                .seller(user2)
                 .transactionFeed(transactionFeed1)
                 .reason("욕설 및 비속어 포함")
                 .reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build())
-                .status(Status.builder().code("MODERATIN_PENDING").build()) // 상태 Enum 사용
+                .status(Status.builder().code("PENDING").description("검수 대기중").build()) // 상태 Enum 사용
                 .isModerated(false)
                 .build();
 
+        ReflectionTestUtils.setField(report1, "reportHistoryId",1L);
+        ReflectionTestUtils.setField(report1, "createdAt",LocalDateTime.now());
+
         report2 = ReportHistory.builder()
                 .user(user2)
+                .seller(user1)
                 .transactionFeed(transactionFeed2)
                 .reason("주제 관련 없음")
                 .reportType(ReportType.builder().reportTypeId(2L).type("주제 관련 없음").build())
-                .status(Status.builder().code("AI_ACCEPTED").build()) // 상태 Enum 사용
+                .status(Status.builder().code("AI_ACCEPTED").description("AI 승인").build()) // 상태 Enum 사용
                 .isModerated(true)
                 .build();
+
+        ReflectionTestUtils.setField(report2, "reportHistoryId",2L);
+        ReflectionTestUtils.setField(report2, "createdAt",LocalDateTime.now());
 
         restriction1 = RestrictionTarget.builder()
                 .user(user1)
                 .reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build())
                 .restrictionType(RestrictionType.builder().content("게시글 작성 제한(7일)").duration(7).build())
-                .status(Status.builder().code("PENDING").build())
+                .status(Status.builder().code("PENDING").description("제재 대기중").build())
                 .build();
 
         restriction2 = RestrictionTarget.builder()
                 .user(user2)
                 .reportType(ReportType.builder().reportTypeId(2L).type("주제 관련 없음").build())
                 .restrictionType(RestrictionType.builder().content("게시글 작성 제한(1일)").duration(1).build())
-                .status(Status.builder().code("COMPLETED").build())
+                .status(Status.builder().code("COMPLETED").description("제재 완료").build())
                 .build();
     }
 
@@ -142,78 +151,125 @@ class ReportServiceTest {
 
 
     @Test
-    @DisplayName("신고 내역 전체 조회_성공")
-    void getReportHistory_all_Success() {
+    @DisplayName("신고 내역 목록 조회_조건 없음_성공")
+    void getReportHistory_NoCriteria_Success() {
         // given
+        String statusCode = null;
+        String keyword = null;
         Page<ReportHistory> page = new PageImpl<>(List.of(report1, report2));
-        when(reportHistoryRepository.findAll(pageable)).thenReturn(page);
+        when(reportHistoryRepository.findByCriteria(statusCode, keyword, pageable)).thenReturn(page);
 
         // when
-        Page<ReportHistoryDto> result = reportService.getReportHistoryListByStatusCode(null, pageable);
+        Page<ReportHistoryDto> result = reportService.getReportHistoryListByStatusCode(null,null, pageable);
 
         // then
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
         assertEquals(report1.getReportHistoryId(), result.getContent().get(0).getReportHistoryId());
         assertEquals(report2.getReportHistoryId(), result.getContent().get(1).getReportHistoryId());
-        assertEquals(report1.getUser().getUserId(), result.getContent().get(0).getUserId());
-        verify(reportHistoryRepository).findAll(pageable);
+        assertEquals(report1.getUser().getUserId(), result.getContent().get(0).getReporterId());
+        verify(reportHistoryRepository).findByCriteria(statusCode, keyword, pageable);
     }
 
 
     @Test
-    @DisplayName("신고 내역 필터링 조회_성공")
+    @DisplayName("신고 내역 목록 조회_상태코드로 필터링_성공")
     void getReportHistory_filtering_Success() {
         // given
         String statusCode = "PENDING";
-        Status pendingStatus = report1.getStatus();
+        String keyword = null;
         Page<ReportHistory> page = new PageImpl<>(List.of(report1));
 
-        when(statusRepository.findByDomainAndCode("REPORT", statusCode)).thenReturn(Optional.of(pendingStatus));
-        when(reportHistoryRepository.findByStatus(pendingStatus, pageable)).thenReturn(page);
+        when(reportHistoryRepository.findByCriteria(statusCode,keyword, pageable)).thenReturn(page);
 
         // when
-        Page<ReportHistoryDto> result = reportService.getReportHistoryListByStatusCode(statusCode, pageable);
+        Page<ReportHistoryDto> result = reportService.getReportHistoryListByStatusCode(statusCode,keyword, pageable);
 
         // then
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(statusRepository).findByDomainAndCode("REPORT", statusCode);
-        verify(reportHistoryRepository).findByStatus(pendingStatus, pageable);
+        assertEquals("검수 대기중", result.getContent().get(0).getStatus());
+        verify(reportHistoryRepository).findByCriteria(statusCode, keyword, pageable);
     }
 
     @Test
-    @DisplayName("제재 내역 전체 조회_성공")
+    @DisplayName("신고 내역 목록 조회_키워드로 검색_성공")
+    void getReportHistoryList_SearchByKeyword_Success(){
+        // given
+        String keyword = "reporter";
+        String statusCode = null;
+        Page<ReportHistory> page = new PageImpl<>(List.of(report1));
+        when(reportHistoryRepository.findByCriteria(statusCode, keyword, pageable)).thenReturn(page);
+
+        // when
+        Page<ReportHistoryDto> result = reportService.getReportHistoryListByStatusCode(statusCode, keyword, pageable);
+
+        // then
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals(user1.getEmail(), result.getContent().get(0).getReporterEmail());
+        verify(reportHistoryRepository).findByCriteria(statusCode, keyword, pageable);
+    }
+
+    @Test
+    @DisplayName("제재 내역 목록 조회_조건 없음_성공")
     void getRestrictionList_all_Success() {
+        // given
+        String statusCode = null;
+        String keyword = null;
         Page<RestrictionTarget> page = new PageImpl<>(List.of(restriction1, restriction2));
-        when(restrictionTargetRepository.findAll(pageable)).thenReturn(page);
 
-        Page<RestrictionDto> result = reportService.getRestrictionListByStatusCode(null, pageable);
+        when(restrictionTargetRepository.findByCriteria(statusCode, keyword, pageable)).thenReturn(page);
 
+        // when
+        Page<RestrictionDto> result = reportService.getRestrictionListByStatusCode(statusCode,keyword, pageable);
+
+        // then
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
-        verify(restrictionTargetRepository).findAll(pageable);
+        verify(restrictionTargetRepository).findByCriteria(statusCode, keyword, pageable);
     }
 
     @Test
-    @DisplayName("제재 내역 상태 필터링 조회_성공")
+    @DisplayName("제재 내역 목록 조회_상태코드로 필터링_성공")
     void getRestrictionList_filtered_Success() {
+        // given
         String statusCode = "PENDING";
-        Status pendingStatus = restriction1.getStatus();
+        String keyword = null;
         Page<RestrictionTarget> page = new PageImpl<>(List.of(restriction1));
 
-        // 변경점: statusRepository.findByDomainAndCode Mocking 추가
-        when(statusRepository.findByDomainAndCode("RESTRICTION", statusCode)).thenReturn(Optional.of(pendingStatus));
-        when(restrictionTargetRepository.findByStatus(pendingStatus, pageable)).thenReturn(page);
+        when(restrictionTargetRepository.findByCriteria(statusCode,keyword, pageable)).thenReturn(page);
 
-        // 변경점: 새 메서드 호출
-        Page<RestrictionDto> result = reportService.getRestrictionListByStatusCode(statusCode, pageable);
+        // when
+        Page<RestrictionDto> result = reportService.getRestrictionListByStatusCode(statusCode, keyword, pageable);
+
+        // then
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals("제재 대기중", result.getContent().get(0).getStatus());
+        verify(restrictionTargetRepository).findByCriteria(statusCode,keyword, pageable);
+    }
+
+    @Test
+    @DisplayName("제재 내역 목록 조회_키워드로 검색_성공")
+    void getRestrictionList_SearchByKeyword_Success() {
+        // given
+        String statusCode = null;
+        String keyword = "reporter";
+        Page<RestrictionTarget> page = new PageImpl<>(List.of(restriction1));
+
+        when(restrictionTargetRepository.findByCriteria(statusCode,keyword, pageable)).thenReturn(page);
+
+        // when
+        Page<RestrictionDto> result = reportService.getRestrictionListByStatusCode(statusCode, keyword, pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(statusRepository).findByDomainAndCode("RESTRICTION", statusCode);
-        verify(restrictionTargetRepository).findByStatus(pendingStatus, pageable);
+        assertEquals(user1.getEmail(), result.getContent().get(0).getUserEmail());
+        verify(restrictionTargetRepository).findByCriteria(statusCode, keyword, pageable);
     }
+
+
 
     @Test
     @DisplayName("관리자 신고_미승인")
@@ -304,7 +360,7 @@ class ReportServiceTest {
                 .content("게시글 작성 제한")
                 .duration(7)
                 .build();
-        // 이 부분을 추가해야 합니다.
+
         Status pendingStatus = Status.builder()
                 .statusId(1L)
                 .domain("RESTRICTION")
@@ -312,11 +368,26 @@ class ReportServiceTest {
                 .description("제재 대기중")
                 .build();
 
+        Status aiAccept = Status.builder()
+                .statusId(2L)
+                .domain("REPORT")
+                .code("AI_ACCEPTED")
+                .description("AI 승인")
+                .build();
+
+        Status adminAccept = Status.builder()
+                .statusId(3L)
+                .domain("REPORT")
+                .code("ADMIN_ACCEPTED")
+                .description("관리자 승인")
+                .build();
+        List<Status> acceptedStatuses = List.of(aiAccept, adminAccept);
+
         when(statusRepository.findByDomainAndCode("RESTRICTION", "PENDING"))
                 .thenReturn(Optional.of(pendingStatus));
 
         // when
-        ReflectionTestUtils.invokeMethod(reportService,"applyRestriction",user1, reportType, restrictionType);
+        ReflectionTestUtils.invokeMethod(reportService,"applyRestriction", user1, reportType, restrictionType, acceptedStatuses);
 
         // then
         verify(restrictionTargetRepository).save(any(RestrictionTarget.class));
@@ -537,5 +608,55 @@ class ReportServiceTest {
         // when, then
         assertThatThrownBy(() -> reportService.getReportDetail(reportId))
                 .isInstanceOf(ReportNotFoundException.class);
+    }
+
+
+    @DisplayName("제재 id로 신고내역 조회_성공")
+    @Test
+    void getRestrictionReportHistory_Success() {
+        // given
+        Long restrictionId = 1L;
+
+        RestrictionTarget restrictionTarget = RestrictionTarget.builder().build();
+        ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId",restrictionId);
+
+        List<RestrictionReportResponseDto> mockResponse = List.of(
+                new RestrictionReportResponseDto(1L, "욕설 및 비속어 포함", "욕설입니다", LocalDateTime.now(), "AI 승인"),
+                new RestrictionReportResponseDto(2L, "욕설 및 비속어 포함", "또 욕설", LocalDateTime.now(), "관리자 승인")
+        );
+
+        when(restrictionTargetRepository.findById(restrictionId))
+                .thenReturn(Optional.of(restrictionTarget));
+
+        when(reportHistoryRepository.getRestrictionReportList(restrictionId))
+                .thenReturn(mockResponse);
+
+        // when
+        List<RestrictionReportResponseDto> result = reportService.getRestrictionReportHistory(restrictionId);
+
+        // then
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result.get(0).getReportId()).isEqualTo(1L);
+        assertThat(result.get(1).getStatus()).isEqualTo("관리자 승인");
+
+        verify(restrictionTargetRepository).findById(restrictionId);
+        verify(reportHistoryRepository).getRestrictionReportList(restrictionId);
+    }
+
+    @DisplayName("제재 id로 신고내역 조회_RestrictionNotFound")
+    @Test
+    void getRestrictionReportHistory_RestrictionNotFound() {
+        // given
+        Long restrictionId = 99L;
+
+        when(restrictionTargetRepository.findById(restrictionId))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> reportService.getRestrictionReportHistory(restrictionId))
+                .isInstanceOf(RestrictionTargetNotFoundException.class);
+
+        verify(restrictionTargetRepository).findById(restrictionId);
+        verify(reportHistoryRepository, never()).getRestrictionReportList(any());
     }
 }

@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-class DashboardServiceTest {
+class DashboardServiceImplTest {
 
     @Mock
     private UserRepository userRepository;

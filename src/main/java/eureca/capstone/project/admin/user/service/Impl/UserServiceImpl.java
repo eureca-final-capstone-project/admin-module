@@ -1,7 +1,9 @@
 package eureca.capstone.project.admin.user.service.Impl;
 
+import eureca.capstone.project.admin.common.exception.custom.RestrictionTargetNotFoundException;
 import eureca.capstone.project.admin.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.admin.common.util.StatusManager;
+import eureca.capstone.project.admin.report.entity.RestrictionTarget;
 import eureca.capstone.project.admin.user.dto.request.UpdateUserRequestDto;
 import eureca.capstone.project.admin.user.dto.response.UpdateUserResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserPageResponseDto;
@@ -29,11 +31,11 @@ public class UserServiceImpl implements UserService {
     private final StatusManager statusManager;
 
     @Override
-    public UserPageResponseDto getUserList(Pageable pageable) {
+    public UserPageResponseDto getUserList(String keyword, Pageable pageable) {
 
-        Page<UserResponseDto> response = userRepository.getUserList(pageable);
+        Page<UserResponseDto> response = userRepository.getUserList(keyword, pageable);
 
-        log.info("[getUserList] 사용자 목록 조회: 총 {} 건", response.getTotalElements());
+        log.info("[getUserList] 사용자 목록 조회 (keyword: {}): 총 {} 건", keyword, response.getTotalElements());
 
         return new UserPageResponseDto(response);
     }
@@ -65,6 +67,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserReportResponseDto> getUserReport(Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
 
         List<UserReportResponseDto> response = userRepository.getUserReportList(userId);
 

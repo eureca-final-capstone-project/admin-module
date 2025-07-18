@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface UserService {
-    UserPageResponseDto getUserList(Pageable pageable);
+    UserPageResponseDto getUserList(String keyword, Pageable pageable);
     UpdateUserResponseDto updateUserStatus(Long userId, UpdateUserRequestDto request);
     List<UserReportResponseDto> getUserReport(Long userId);
 }

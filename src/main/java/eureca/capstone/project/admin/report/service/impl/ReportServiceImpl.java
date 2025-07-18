@@ -3,7 +3,6 @@ package eureca.capstone.project.admin.report.service.impl;
 import eureca.capstone.project.admin.auth.entity.Authority;
 import eureca.capstone.project.admin.auth.entity.UserAuthority;
 import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
-import eureca.capstone.project.admin.common.entity.StatusConst;
 import eureca.capstone.project.admin.common.exception.custom.*;
 import eureca.capstone.project.admin.common.repository.StatusRepository;
 import eureca.capstone.project.admin.common.util.StatusManager;
@@ -67,31 +66,17 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<ReportHistoryDto> getReportHistoryListByStatusCode(String statusCode, Pageable pageable) {
-        if (statusCode == null || statusCode.isBlank()) {
-            Page<ReportHistoryDto> response = reportHistoryRepository.findAll(pageable).map(ReportHistoryDto::from);
-            log.info("[getReportHistoryListByStatusCode] 신고내역 전체 조회: {}건", response.getTotalElements());
-            return response;
-        }
-        Status status = statusRepository.findByDomainAndCode(REPORT, statusCode)
-                .orElseThrow(ReportTypeNotFoundException::new);
-        Page<ReportHistoryDto> response = reportHistoryRepository.findByStatus(status, pageable).map(ReportHistoryDto::from);
-        log.info("[getReportHistoryListByStatusCode] 신고내역 상태 필터링해서 조회: {}건. status = {}", response.getTotalElements(), statusCode);
-        return response;
+    public Page<ReportHistoryDto> getReportHistoryListByStatusCode(String statusCode,String keyword, Pageable pageable) {
+        Page<ReportHistory> reportHistories = reportHistoryRepository.findByCriteria(statusCode, keyword, pageable);
+        log.info("[getReportHistoryListByStatusCode] 신고 내역 조회 (keyword: {}, statusCode: {}): 총 {} 건", keyword, statusCode, reportHistories.getTotalElements());
+        return reportHistories.map(ReportHistoryDto::from);
     }
 
     @Override
-    public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode, Pageable pageable) {
-        if (statusCode == null || statusCode.isBlank()) {
-            Page<RestrictionDto> response = restrictionTargetRepository.findAll(pageable).map(RestrictionDto::from);
-            log.info("[getRestrictionListByStatusCode] 제재내역 전체 조회: {}건", response.getTotalElements());
-            return response;
-        }
-        Status status = statusRepository.findByDomainAndCode(RESTRICTION, statusCode)
-                .orElseThrow(RestrictionTypeNotFoundException::new);
-        Page<RestrictionDto> response = restrictionTargetRepository.findByStatus(status, pageable).map(RestrictionDto::from);
-        log.info("[getRestrictionListByStatusCode] 제재내역 상태 필터링해서 조회: {}건. status = {}", response.getTotalElements(), statusCode);
-        return response;
+    public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode,String keyword, Pageable pageable) {
+        Page<RestrictionTarget> restrictionTarget = restrictionTargetRepository.findByCriteria(statusCode, keyword, pageable);
+        log.info("[getRestrictionListByStatusCode] 신고 내역 조회 (keyword: {}, statusCode: {}): 총 {} 건", keyword, statusCode, restrictionTarget.getTotalElements());
+        return restrictionTarget.map(RestrictionDto::from);
     }
 
 
@@ -145,6 +130,13 @@ public class ReportServiceImpl implements ReportService {
             throw new DuplicateReportException();
         }
 
+        log.info("[신고 접수] 신고자: {}, 피드 제목: [{}], 피드 내용: [{}], 신고 유형: {}, 신고 이유: {}",
+                user.getEmail(),
+                transactionFeed.getTitle(),
+                transactionFeed.getContent(),
+                reportType.getType(),
+                reason);
+
         AIReviewRequestDto requestDto = new AIReviewRequestDto(
                 transactionFeed.getTitle(),
                 transactionFeed.getContent(),
@@ -167,9 +159,8 @@ public class ReportServiceImpl implements ReportService {
                 .build();
         reportHistoryRepository.save(newReport);
 
-        log.info("[createReportAndProcessWithAI] AI 판단 이후 신고내역 추가. 피신고자: {}", seller);
+        log.info("[createReportAndProcessWithAI] AI 판단 이후 신고내역 추가. 피신고자: {}", seller.getEmail());
 
-        // 변경점: findByCode -> findByDomainAndCode
         Status aiAcceptedStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED")
                 .orElseThrow(StatusNotFoundException::new);
         if (initialStatus.equals(aiAcceptedStatus)) {
@@ -193,12 +184,23 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
+    /* TODO:
+        reportHistory에서 이미 제재대상에 들어간 신고는 count X.
+        신고테이블-제재테이블 fk로 연결
+        ** 신고내역에서도 제재가 완료됐는지 제재 상태 확인할 수 있어야 함.
+        ** 제재내역에서도 제재id로 신고내역 조회돼야 함.
+        제재 대상에 등록되기 전까지는 null로 들어감. 제재 하나당 여러개 신고 존재 가능 -> 제재(1) : 신고(n).
+        => 신고 횟수 조회할 때, restrictTarget이 null인 것만 count하면 될듯. [O]
+        => 제재 대상에 등록할 때 신고테이블에도 restrictionTarget 값 넣어줘야 함 (update)
+     */
     private void checkAndApplyRestriction(User seller, ReportType reportType) {
         Status aiAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
         Status adminAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_ACCEPTED").orElseThrow(StatusNotFoundException::new);
         List<Status> acceptedStatuses = List.of(aiAcceptStatus, adminAcceptStatus);
 
-        long violationCount = reportHistoryRepository.countBySellerAndReportTypeAndStatusIn(seller, reportType, acceptedStatuses);
+        long violationCount = reportHistoryRepository
+                .countReportToRestrict(seller, reportType, acceptedStatuses);
+
         RestrictionType restrictionType;
         log.info("[checkAndApplyRestriction] 피신고 수={}", violationCount);
 
@@ -207,39 +209,39 @@ public class ReportServiceImpl implements ReportService {
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
                     log.info("[checkAndApplyRestriction] 욕설 및 비속어 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
                 }
             }
             case 2 -> {  // 주제 불일치
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(4L).orElseThrow(RestrictionTypeNotFoundException::new);
                     log.info("[checkAndApplyRestriction] 주제 불일치 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
                 }
             }
             case 3 -> { // 음란 내용 포함
                 restrictionType = restrictionTypeRepository.findById(2L).orElseThrow(RestrictionTypeNotFoundException::new);
                 log.info("[checkAndApplyRestriction] 음란 내용 포함 글 신고: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                applyRestriction(seller, reportType, restrictionType);
+                applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
             }
             case 4 -> { // 외부 채널 유도
                 if (violationCount >= 3) {
                     restrictionType = restrictionTypeRepository.findById(3L).orElseThrow(RestrictionTypeNotFoundException::new);
                     log.info("[checkAndApplyRestriction] 외부 채널 유도 신고 수 3회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
                 }
             }
             case 5 -> { // 비방/저격 포함
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
                     log.info("[checkAndApplyRestriction] 비방/저격 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
                 }
             }
         }
     }
 
-    private void applyRestriction(User user, ReportType reportType, RestrictionType restrictionType) {
+    private void applyRestriction(User user, ReportType reportType, RestrictionType restrictionType, List<Status> acceptedStatuses) {
         Status status = statusRepository.findByDomainAndCode(RESTRICTION, "PENDING")
                 .orElseThrow(StatusNotFoundException::new);
         RestrictionTarget restriction = RestrictionTarget.builder()
@@ -249,8 +251,17 @@ public class ReportServiceImpl implements ReportService {
                 .status(status)
                 .build();
         restrictionTargetRepository.save(restriction);
+        log.info("[applyRestriction] 제재 대상 등록 완료. id: {}, 제재타입: {}, status: {}", restriction.getRestrictionTargetId(), restrictionType.getContent(), status.getCode());
 
-        log.info("[applyRestriction] 제재 적용. id: {}, 제재타입: {}, status: {}", restriction.getRestrictionTargetId(), restrictionType.getContent(), status.getCode());
+        List<ReportHistory> reportsToRestrict = reportHistoryRepository
+                .findReportsToRestrict(user, reportType, acceptedStatuses);
+        log.info("[applyRestriction] 제재와 연관된 신고내역 조회: 총 {}건", reportsToRestrict.size());
+
+        for (ReportHistory report : reportsToRestrict) {
+            report.updateRestrictionTarget(restriction);
+        }
+        reportHistoryRepository.saveAll(reportsToRestrict);
+        log.info("[applyRestriction] 연관 신고내역에 제재 id 등록완료. restrictionTargetId: {}", restriction.getRestrictionTargetId());
     }
 
     @Transactional
@@ -333,6 +344,19 @@ public class ReportServiceImpl implements ReportService {
         }
 
         log.info("[getReportDetail] 신고상세 조회 완료 : {} ", response.getReportId());
+        return response;
+    }
+
+    @Override
+    public List<RestrictionReportResponseDto> getRestrictionReportHistory(Long restrictionId) {
+
+        RestrictionTarget restriction = restrictionTargetRepository.findById(restrictionId)
+                .orElseThrow(RestrictionTargetNotFoundException::new);
+
+        List<RestrictionReportResponseDto> response = reportHistoryRepository.getRestrictionReportList(restrictionId);
+
+        log.info("[getRestrictionReportHistory] 제재와 연관된 신고내역 조회: 총 {} 건", response.size());
+
         return response;
     }
 

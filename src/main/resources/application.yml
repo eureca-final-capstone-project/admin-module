@@ -35,4 +35,4 @@ springdoc:
     operations-sorter: alpha
 
 jwt:
-  secret: 2be68ad14b262737e35b39066a52a326e0db535cd4b3652e740b4a67cdea302648f7a8e8cedacb879134745f1b3d72c6093fa6049faaf8c7f2a45ce0e177f49
+  secret: Y2Fwc3RvbmUtcHJvamVjdC0yMDI1LWtleQ==

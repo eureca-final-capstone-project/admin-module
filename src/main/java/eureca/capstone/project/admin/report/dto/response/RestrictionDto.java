@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public class RestrictionDto {
     private Long restrictionTargetId;
     private Long userId;
+    private String userEmail;
     private String reportType;
     private String restrictionContent;
     private Integer restrictionDuration;
@@ -21,6 +22,7 @@ public class RestrictionDto {
         return RestrictionDto.builder()
                 .restrictionTargetId(restrictionTarget.getRestrictionTargetId())
                 .userId(restrictionTarget.getUser().getUserId())
+                .userEmail(restrictionTarget.getUser().getEmail())
                 .reportType(restrictionTarget.getReportType().getType())
                 .restrictionContent(restrictionTarget.getRestrictionType().getContent())
                 .restrictionDuration(restrictionTarget.getRestrictionType().getDuration())
