@@ -68,5 +68,9 @@ public class ReportHistory extends BaseEntity {
         this.status = status;
     }
 
+    public void updateRestrictionTarget(RestrictionTarget restrictionTarget) {
+        this.restrictionTarget = restrictionTarget;
+    }
+
 }
 

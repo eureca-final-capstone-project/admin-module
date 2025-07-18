@@ -199,7 +199,7 @@ public class ReportServiceImpl implements ReportService {
         ** 신고내역에서도 제재가 완료됐는지 제재 상태 확인할 수 있어야 함.
         ** 제재내역에서도 제재id로 신고내역 조회돼야 함.
         제재 대상에 등록되기 전까지는 null로 들어감. 제재 하나당 여러개 신고 존재 가능 -> 제재(1) : 신고(n).
-        => 신고 횟수 조회할 때, restrictTarget이 null인 것만 count하면 될듯.
+        => 신고 횟수 조회할 때, restrictTarget이 null인 것만 count하면 될듯. [O]
         => 제재 대상에 등록할 때 신고테이블에도 restrictionTarget 값 넣어줘야 함 (update)
      */
     private void checkAndApplyRestriction(User seller, ReportType reportType) {
@@ -207,7 +207,9 @@ public class ReportServiceImpl implements ReportService {
         Status adminAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_ACCEPTED").orElseThrow(StatusNotFoundException::new);
         List<Status> acceptedStatuses = List.of(aiAcceptStatus, adminAcceptStatus);
 
-        long violationCount = reportHistoryRepository.countBySellerAndReportTypeAndStatusIn(seller, reportType, acceptedStatuses);
+        long violationCount = reportHistoryRepository
+                .countReportToRestrict(seller, reportType, acceptedStatuses);
+
         RestrictionType restrictionType;
         log.info("[checkAndApplyRestriction] 피신고 수={}", violationCount);
 
@@ -216,39 +218,39 @@ public class ReportServiceImpl implements ReportService {
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
                     log.info("[checkAndApplyRestriction] 욕설 및 비속어 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
                 }
             }
             case 2 -> {  // 주제 불일치
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(4L).orElseThrow(RestrictionTypeNotFoundException::new);
                     log.info("[checkAndApplyRestriction] 주제 불일치 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
                 }
             }
             case 3 -> { // 음란 내용 포함
                 restrictionType = restrictionTypeRepository.findById(2L).orElseThrow(RestrictionTypeNotFoundException::new);
                 log.info("[checkAndApplyRestriction] 음란 내용 포함 글 신고: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                applyRestriction(seller, reportType, restrictionType);
+                applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
             }
             case 4 -> { // 외부 채널 유도
                 if (violationCount >= 3) {
                     restrictionType = restrictionTypeRepository.findById(3L).orElseThrow(RestrictionTypeNotFoundException::new);
                     log.info("[checkAndApplyRestriction] 외부 채널 유도 신고 수 3회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
                 }
             }
             case 5 -> { // 비방/저격 포함
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
                     log.info("[checkAndApplyRestriction] 비방/저격 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType);
+                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
                 }
             }
         }
     }
 
-    private void applyRestriction(User user, ReportType reportType, RestrictionType restrictionType) {
+    private void applyRestriction(User user, ReportType reportType, RestrictionType restrictionType, List<Status> acceptedStatuses) {
         Status status = statusRepository.findByDomainAndCode(RESTRICTION, "PENDING")
                 .orElseThrow(StatusNotFoundException::new);
         RestrictionTarget restriction = RestrictionTarget.builder()
@@ -258,8 +260,17 @@ public class ReportServiceImpl implements ReportService {
                 .status(status)
                 .build();
         restrictionTargetRepository.save(restriction);
+        log.info("[applyRestriction] 제재 대상 등록 완료. id: {}, 제재타입: {}, status: {}", restriction.getRestrictionTargetId(), restrictionType.getContent(), status.getCode());
 
-        log.info("[applyRestriction] 제재 적용. id: {}, 제재타입: {}, status: {}", restriction.getRestrictionTargetId(), restrictionType.getContent(), status.getCode());
+        List<ReportHistory> reportsToRestrict = reportHistoryRepository
+                .findReportsToRestrict(user, reportType, acceptedStatuses);
+        log.info("[applyRestriction] 제재와 연관된 신고내역 조회: 총 {}건", reportsToRestrict.size());
+
+        for (ReportHistory report : reportsToRestrict) {
+            report.updateRestrictionTarget(restriction);
+        }
+        reportHistoryRepository.saveAll(reportsToRestrict);
+        log.info("[applyRestriction] 연관 신고내역에 제재 id 등록완료. restrictionTargetId: {}", restriction.getRestrictionTargetId());
     }
 
     @Transactional
