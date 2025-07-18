@@ -4,6 +4,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import eureca.capstone.project.admin.report.dto.response.RestrictionReportResponseDto;
 import eureca.capstone.project.admin.report.entity.ReportHistory;
 import eureca.capstone.project.admin.report.dto.response.ReportDetailResponseDto;
 import eureca.capstone.project.admin.report.repository.custom.ReportHistoryRepositoryCustom;
@@ -89,6 +90,27 @@ public class ReportHistoryRepositoryImpl implements ReportHistoryRepositoryCusto
 
         return reportDetail;
     }
+
+    @Override
+    public List<RestrictionReportResponseDto> getRestrictionReportList(Long restrictionId) {
+
+        List<RestrictionReportResponseDto> reportList = jpaQueryFactory
+                .select(Projections.constructor(RestrictionReportResponseDto.class,
+                        reportHistory.reportHistoryId,
+                        reportHistory.reportType.explanation,
+                        transactionFeed.content,
+                        reportHistory.createdAt,
+                        reportHistory.status.description
+                        ))
+                .from(reportHistory)
+                .join(reportHistory.transactionFeed, transactionFeed)
+                .where(reportHistory.restrictionTarget.restrictionTargetId.eq(restrictionId))
+                .fetch();
+
+        log.info("[getRestrictionReportList] 쿼리 생성: 총 {}건", reportList.size());
+        return reportList;
+    }
+
     private BooleanExpression statusEquals(String statusCode) {
         return StringUtils.hasText(statusCode) ? reportHistory.status.code.eq(statusCode) : null;
     }
