@@ -47,7 +47,7 @@ public class ReportHistory extends BaseEntity {
     @Column(name = "is_moderated")
     private boolean isModerated = false;
 
-    @JoinColumn(name = "restriction_target")
+    @JoinColumn(name = "restriction_target_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private RestrictionTarget restrictionTarget;
 
