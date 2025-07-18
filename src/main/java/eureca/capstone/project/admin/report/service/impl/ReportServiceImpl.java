@@ -97,7 +97,6 @@ public class ReportServiceImpl implements ReportService {
         }
 
         if (!request.getApproved()) {
-            // 변경점: findByCode -> findByDomainAndCode
             Status adminRejectedStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_REJECTED")
                     .orElseThrow(StatusNotFoundException::new);
             reportHistory.updateStatus(adminRejectedStatus);
@@ -106,7 +105,6 @@ public class ReportServiceImpl implements ReportService {
             return;
         }
 
-        // 변경점: findByCode -> findByDomainAndCode
         Status adminAcceptedStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_ACCEPTED")
                 .orElseThrow(StatusNotFoundException::new);
         reportHistory.updateStatus(adminAcceptedStatus);
@@ -322,6 +320,13 @@ public class ReportServiceImpl implements ReportService {
         restrictionTarget.updateExpiresAt(expiresAt);
         restrictionTarget.updateStatus(statusManager.getStatus("RESTRICTION", "COMPLETED"));
         log.info("[acceptRestrictions] 제재 완료. expiresAt: {}, status: {}", expiresAt, restrictionTarget.getStatus().getCode());
+
+        //제재와 연관된 신고 내역들의 상태를 '제재 완료'로 변경
+        Status reportCompletedStatus = statusManager.getStatus("REPORT", "COMPLETED");
+        List<ReportHistory> relatedReports = reportHistoryRepository.findByRestrictionTarget(restrictionTarget);
+        relatedReports.forEach(report -> report.updateStatus(reportCompletedStatus));
+        reportHistoryRepository.saveAll(relatedReports);
+        log.info("[acceptRestrictions] 연관된 신고 내역 {}건의 상태를 '제재 완료'로 변경했습니다.", relatedReports.size());
     }
 
     @Transactional
@@ -332,6 +337,12 @@ public class ReportServiceImpl implements ReportService {
 
         restrictionTarget.updateStatus(statusManager.getStatus("RESTRICTION", "REJECTED"));
         log.info("[acceptRestrictions] 제재 거절 완료. status: {}", restrictionTarget.getStatus().getCode());
+
+        Status reportRejectedStatus = statusManager.getStatus("REPORT", "REJECTED");
+        List<ReportHistory> relatedReports = reportHistoryRepository.findByRestrictionTarget(restrictionTarget);
+        relatedReports.forEach(report -> report.updateStatus(reportRejectedStatus));
+        reportHistoryRepository.saveAll(relatedReports);
+        log.info("[rejectRestrictions] 연관된 신고 내역 {}건의 상태를 '제재 미승인'으로 변경했습니다.", relatedReports.size());
     }
 
     @Override
