@@ -1,6 +1,7 @@
 package eureca.capstone.project.admin.report.repository;
 
 import eureca.capstone.project.admin.report.entity.ReportHistory;
+import eureca.capstone.project.admin.report.repository.custom.ReportHistoryRepositoryCustom;
 import eureca.capstone.project.admin.report.entity.ReportType;
 import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.report.repository.custom.ReportHistoryRepositoryCustom;

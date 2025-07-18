@@ -29,11 +29,11 @@ public class UserServiceImpl implements UserService {
     private final StatusManager statusManager;
 
     @Override
-    public UserPageResponseDto getUserList(Pageable pageable) {
+    public UserPageResponseDto getUserList(String keyword, Pageable pageable) {
 
-        Page<UserResponseDto> response = userRepository.getUserList(pageable);
+        Page<UserResponseDto> response = userRepository.getUserList(keyword, pageable);
 
-        log.info("[getUserList] 사용자 목록 조회: 총 {} 건", response.getTotalElements());
+        log.info("[getUserList] 사용자 목록 조회 (keyword: {}): 총 {} 건", keyword, response.getTotalElements());
 
         return new UserPageResponseDto(response);
     }

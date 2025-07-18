@@ -67,31 +67,17 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<ReportHistoryDto> getReportHistoryListByStatusCode(String statusCode, Pageable pageable) {
-        if (statusCode == null || statusCode.isBlank()) {
-            Page<ReportHistoryDto> response = reportHistoryRepository.findAll(pageable).map(ReportHistoryDto::from);
-            log.info("[getReportHistoryListByStatusCode] 신고내역 전체 조회: {}건", response.getTotalElements());
-            return response;
-        }
-        Status status = statusRepository.findByDomainAndCode(REPORT, statusCode)
-                .orElseThrow(ReportTypeNotFoundException::new);
-        Page<ReportHistoryDto> response = reportHistoryRepository.findByStatus(status, pageable).map(ReportHistoryDto::from);
-        log.info("[getReportHistoryListByStatusCode] 신고내역 상태 필터링해서 조회: {}건. status = {}", response.getTotalElements(), statusCode);
-        return response;
+    public Page<ReportHistoryDto> getReportHistoryListByStatusCode(String statusCode,String keyword, Pageable pageable) {
+        Page<ReportHistory> reportHistories = reportHistoryRepository.findByCriteria(statusCode, keyword, pageable);
+        log.info("[getReportHistoryListByStatusCode] 신고 내역 조회 (keyword: {}, statusCode: {}): 총 {} 건", keyword, statusCode, reportHistories.getTotalElements());
+        return reportHistories.map(ReportHistoryDto::from);
     }
 
     @Override
-    public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode, Pageable pageable) {
-        if (statusCode == null || statusCode.isBlank()) {
-            Page<RestrictionDto> response = restrictionTargetRepository.findAll(pageable).map(RestrictionDto::from);
-            log.info("[getRestrictionListByStatusCode] 제재내역 전체 조회: {}건", response.getTotalElements());
-            return response;
-        }
-        Status status = statusRepository.findByDomainAndCode(RESTRICTION, statusCode)
-                .orElseThrow(RestrictionTypeNotFoundException::new);
-        Page<RestrictionDto> response = restrictionTargetRepository.findByStatus(status, pageable).map(RestrictionDto::from);
-        log.info("[getRestrictionListByStatusCode] 제재내역 상태 필터링해서 조회: {}건. status = {}", response.getTotalElements(), statusCode);
-        return response;
+    public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode,String keyword, Pageable pageable) {
+        Page<RestrictionTarget> restrictionTarget = restrictionTargetRepository.findByCriteria(statusCode, keyword, pageable);
+        log.info("[getRestrictionListByStatusCode] 신고 내역 조회 (keyword: {}, statusCode: {}): 총 {} 건", keyword, statusCode, restrictionTarget.getTotalElements());
+        return restrictionTarget.map(RestrictionDto::from);
     }
 
 

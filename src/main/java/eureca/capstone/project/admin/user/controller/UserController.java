@@ -22,11 +22,14 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "사용자 목록 조회", description = "전체 사용자 목록을 조회합니다.")
+    @Operation(summary = "사용자 목록 조회", description = "전체 사용자 목록을 조회합니다. 검색어를 통해 이메일 또는 닉네임으로 검색할 수 있습니다.")
     @GetMapping
-    public BaseResponseDto<UserPageResponseDto> getUserList(Pageable pageable) {
-        UserPageResponseDto userPageResponseDto = userService.getUserList(pageable);
-        return BaseResponseDto.success(userPageResponseDto);
+    public BaseResponseDto<UserPageResponseDto> getUserList(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            Pageable pageable
+    ) {
+        UserPageResponseDto userPageResponseDto = userService.getUserList(keyword, pageable);
+        return BaseResponseDto.success( userPageResponseDto);
     }
 
     @Operation(summary = "사용자 상태 변경", description = "특정 사용자의 차단/활성화 상태를 변경합니다.")

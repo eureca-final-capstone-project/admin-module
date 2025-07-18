@@ -33,8 +33,10 @@ public class ReportController {
     public BaseResponseDto<Page<ReportHistoryDto>> getReportHistoryList(
             @Parameter(description = "필터링할 신고 상태 <br>(PENDING, AI_ACCEPTED, AI_REJECTED, ADMIN_ACCEPTED, ADMIN_REJECTED, COMPLETED, REJECTED)")
             @RequestParam(required = false) String statusCode,
+            @Parameter(description = "검색어 (신고자 이메일)")
+            @RequestParam(required = false) String keyword,
             Pageable pageable) {
-        return BaseResponseDto.success(reportService.getReportHistoryListByStatusCode(statusCode, pageable));
+        return BaseResponseDto.success(reportService.getReportHistoryListByStatusCode(statusCode, keyword, pageable));
     }
 
     @Operation(summary = "신고 내역 상세 조회", description = "신고 내역을 상세 조회합니다.")
@@ -47,8 +49,9 @@ public class ReportController {
     @GetMapping("/restrictions")
     public BaseResponseDto<Page<RestrictionDto>> getRestrictionList(
             @Parameter(description = "필터링할 제재 상태 (PENDING, COMPLETED, REJECTED)") @RequestParam(required = false) String statusCode,
+            @Parameter(description = "검색어 (신고자 이메일)") @RequestParam(required = false) String keyword,
             Pageable pageable) {
-        return BaseResponseDto.success(reportService.getRestrictionListByStatusCode(statusCode, pageable));
+        return BaseResponseDto.success(reportService.getRestrictionListByStatusCode(statusCode,keyword, pageable));
     }
 
     @Operation(summary = "게시글 신고 접수", description = "사용자가 게시글을 신고하면 AI가 1차 검토 후 접수합니다.")

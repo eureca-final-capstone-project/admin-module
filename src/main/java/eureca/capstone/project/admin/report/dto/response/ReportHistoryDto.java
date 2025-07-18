@@ -9,23 +9,28 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 public class ReportHistoryDto {
+    // 신고 정보
     private Long reportHistoryId;
     private String reportType;
-    private Long userId;
-    private Long transactionFeedId;
     private String reason;
     private String status;
-    private LocalDateTime createdAt;
+    private LocalDateTime reportedAt;
+    private Long reporterId;
+    private String reporterEmail;
+    private Long transactionFeedId;
+    private String transactionFeedTitle;
 
     public static ReportHistoryDto from(ReportHistory reportHistory) {
         return ReportHistoryDto.builder()
                 .reportHistoryId(reportHistory.getReportHistoryId())
                 .reportType(reportHistory.getReportType().getType())
-                .userId(reportHistory.getUser().getUserId())
-                .transactionFeedId(reportHistory.getTransactionFeed().getTransactionFeedId())
                 .reason(reportHistory.getReason())
                 .status(reportHistory.getStatus().getDescription())
-                .createdAt(reportHistory.getCreatedAt())
+                .reportedAt(reportHistory.getCreatedAt())
+                .reporterId(reportHistory.getUser().getUserId())
+                .reporterEmail(reportHistory.getUser().getEmail())
+                .transactionFeedId(reportHistory.getTransactionFeed().getTransactionFeedId())
+                .transactionFeedTitle(reportHistory.getTransactionFeed().getTitle())
                 .build();
     }
 }
