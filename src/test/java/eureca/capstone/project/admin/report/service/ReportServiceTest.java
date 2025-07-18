@@ -3,6 +3,7 @@ package eureca.capstone.project.admin.report.service;
 import eureca.capstone.project.admin.auth.entity.Authority;
 import eureca.capstone.project.admin.auth.entity.UserAuthority;
 import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
+import eureca.capstone.project.admin.common.exception.custom.AlreadyProcessedRestrictionException;
 import eureca.capstone.project.admin.common.exception.custom.ReportNotFoundException;
 import eureca.capstone.project.admin.common.exception.custom.RestrictionTargetNotFoundException;
 import eureca.capstone.project.admin.common.util.StatusManager;
@@ -459,8 +460,10 @@ class ReportServiceTest {
     @Test
     void acceptRestrictions_Restriction_Success() {
         // given
+        Status pendingStatus = Status.builder().domain("RESTRICTION").code("PENDING").build();
         RestrictionTarget restrictionTarget = RestrictionTarget.builder()
                 .restrictionType(RestrictionType.builder().duration(-1).build())
+                .status(pendingStatus)
                 .user(user1)
                 .build();
 
@@ -470,6 +473,8 @@ class ReportServiceTest {
         Status completedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
         when(statusManager.getStatus("USER", "BANNED")).thenReturn(bannedStatus);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
+        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
+                .thenReturn(Optional.of(completedStatus));
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
 
         // when
@@ -485,6 +490,7 @@ class ReportServiceTest {
     @Test
     void acceptRestrictions_Restriction_newUserAuthority_success() {
         // given
+        Status pendingStatus = Status.builder().domain("RESTRICTION").code("PENDING").build();
         Authority authority = Authority.builder().build();
         ReflectionTestUtils.setField(authority, "authority_id", 1L);
 
@@ -495,6 +501,7 @@ class ReportServiceTest {
 
         RestrictionTarget restrictionTarget = RestrictionTarget.builder()
                 .restrictionType(restrictionType)
+                .status(pendingStatus)
                 .user(user1)
                 .build();
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
@@ -504,6 +511,8 @@ class ReportServiceTest {
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
         when(userAuthorityRepository.findByUserAndAuthority(user1, authority)).thenReturn(null);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
+        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
+                .thenReturn(Optional.of(completedStatus));
 
         // when
         reportService.acceptRestrictions(1L);
@@ -518,6 +527,7 @@ class ReportServiceTest {
     @Test
     void acceptRestrictions_Restriction_extendUserAuthority_success() {
         // given
+        Status pendingStatus = Status.builder().domain("RESTRICTION").code("PENDING").build();
         Authority authority = Authority.builder().build();
         RestrictionType restrictionType = RestrictionType.builder()
                 .duration(7)
@@ -534,6 +544,7 @@ class ReportServiceTest {
 
         RestrictionTarget restrictionTarget = RestrictionTarget.builder()
                 .restrictionType(restrictionType)
+                .status(pendingStatus)
                 .user(user1)
                 .build();
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
@@ -543,7 +554,8 @@ class ReportServiceTest {
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
         when(userAuthorityRepository.findByUserAndAuthority(user1, authority)).thenReturn(userAuthority);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
-
+        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
+                .thenReturn(Optional.of(completedStatus));
         // when
         reportService.acceptRestrictions(1L);
 
@@ -552,26 +564,71 @@ class ReportServiceTest {
         assertEquals(completedStatus, restrictionTarget.getStatus());
     }
 
+    @DisplayName("제재 승인_실패(AlreadyProcessedRestriction)")
+    @Test
+    void acceptRestrictions_Fail_AlreadyProcessedRestriction() {
+        // given
+        Status acceptedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
+
+        RestrictionTarget restrictionTarget = RestrictionTarget.builder()
+                .user(user1)
+                .status(acceptedStatus)
+                .build();
+        ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
+
+        when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
+        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
+                .thenReturn(Optional.of(acceptedStatus));
+
+        // when & then
+        assertThrows(AlreadyProcessedRestrictionException.class,
+                () -> reportService.acceptRestrictions(1L));
+    }
+
     @DisplayName("제재 거절_성공")
     @Test
     void rejectRestrictions_success() {
         // given
-        RestrictionTarget restrictionTarget = RestrictionTarget.builder()
-                .user(user1)
-                .build();
-
-        ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
-
+        Status acceptedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
         Status rejectedStatus = Status.builder().domain("RESTRICTION").code("REJECTED").build();
 
-        when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
-        when(statusManager.getStatus("RESTRICTION", "REJECTED")).thenReturn(rejectedStatus);
+        RestrictionTarget restrictionTarget = RestrictionTarget.builder()
+                .user(user1)
+                .status(acceptedStatus)
+                .build();
+        ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
 
+        when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
+        when(statusRepository.findByDomainAndCode("RESTRICTION", "REJECTED"))
+                .thenReturn(Optional.of(rejectedStatus));
+        when(statusManager.getStatus("RESTRICTION", "REJECTED"))
+                .thenReturn(rejectedStatus);
         // when
         reportService.rejectRestrictions(1L);
 
         // then
         assertEquals(rejectedStatus, restrictionTarget.getStatus());
+    }
+
+    @DisplayName("제재 거절_실패(AlreadyProcessedRestriction)")
+    @Test
+    void rejectRestrictions_Fail_AlreadyProcessedRestriction() {
+        // given
+        Status rejectedStatus = Status.builder().domain("RESTRICTION").code("REJECTED").build();
+
+        RestrictionTarget restrictionTarget = RestrictionTarget.builder()
+                .user(user1)
+                .status(rejectedStatus)
+                .build();
+        ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
+
+        when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
+        when(statusRepository.findByDomainAndCode("RESTRICTION", "REJECTED"))
+                .thenReturn(Optional.of(rejectedStatus));
+
+        // when & then
+        assertThrows(AlreadyProcessedRestrictionException.class,
+                () -> reportService.rejectRestrictions(1L));
     }
 
 
