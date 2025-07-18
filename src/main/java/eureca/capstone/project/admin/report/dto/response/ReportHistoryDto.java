@@ -18,6 +18,7 @@ public class ReportHistoryDto {
     private Long reporterId;
     private String reporterEmail;
     private Long transactionFeedId;
+    private String transactionFeedTitle;
 
     public static ReportHistoryDto from(ReportHistory reportHistory) {
         return ReportHistoryDto.builder()
@@ -29,6 +30,7 @@ public class ReportHistoryDto {
                 .reporterId(reportHistory.getUser().getUserId())
                 .reporterEmail(reportHistory.getUser().getEmail())
                 .transactionFeedId(reportHistory.getTransactionFeed().getTransactionFeedId())
+                .transactionFeedTitle(reportHistory.getTransactionFeed().getTitle())
                 .build();
     }
 }

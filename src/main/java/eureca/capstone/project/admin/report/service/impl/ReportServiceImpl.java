@@ -68,7 +68,6 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public Page<ReportHistoryDto> getReportHistoryListByStatusCode(String statusCode,String keyword, Pageable pageable) {
-        // Querydsl을 사용하는 custom repository 메서드를 호출하여 동적 쿼리 실행
         Page<ReportHistory> reportHistories = reportHistoryRepository.findByCriteria(statusCode, keyword, pageable);
         log.info("[getReportHistoryListByStatusCode] 신고 내역 조회 (keyword: {}, statusCode: {}): 총 {} 건", keyword, statusCode, reportHistories.getTotalElements());
         return reportHistories.map(ReportHistoryDto::from);
