@@ -46,8 +46,9 @@ public class ReportController {
     @GetMapping("/restrictions")
     public BaseResponseDto<Page<RestrictionDto>> getRestrictionList(
             @Parameter(description = "필터링할 제재 상태 (PENDING, COMPLETED, REJECTED)") @RequestParam(required = false) String statusCode,
+            @Parameter(description = "검색어 (신고자 이메일)") @RequestParam(required = false) String keyword,
             Pageable pageable) {
-        return BaseResponseDto.success(reportService.getRestrictionListByStatusCode(statusCode, pageable));
+        return BaseResponseDto.success(reportService.getRestrictionListByStatusCode(statusCode,keyword, pageable));
     }
 
     @Operation(summary = "게시글 신고 접수", description = "사용자가 게시글을 신고하면 AI가 1차 검토 후 접수합니다.")

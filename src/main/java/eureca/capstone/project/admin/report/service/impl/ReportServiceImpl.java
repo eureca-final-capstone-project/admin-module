@@ -74,17 +74,10 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode, Pageable pageable) {
-        if (statusCode == null || statusCode.isBlank()) {
-            Page<RestrictionDto> response = restrictionTargetRepository.findAll(pageable).map(RestrictionDto::from);
-            log.info("[getRestrictionListByStatusCode] 제재내역 전체 조회: {}건", response.getTotalElements());
-            return response;
-        }
-        Status status = statusRepository.findByDomainAndCode(RESTRICTION, statusCode)
-                .orElseThrow(RestrictionTypeNotFoundException::new);
-        Page<RestrictionDto> response = restrictionTargetRepository.findByStatus(status, pageable).map(RestrictionDto::from);
-        log.info("[getRestrictionListByStatusCode] 제재내역 상태 필터링해서 조회: {}건. status = {}", response.getTotalElements(), statusCode);
-        return response;
+    public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode,String keyword, Pageable pageable) {
+        Page<RestrictionTarget> restrictionTarget = restrictionTargetRepository.findByCriteria(statusCode, keyword, pageable);
+        log.info("[getRestrictionListByStatusCode] 신고 내역 조회 (keyword: {}, statusCode: {}): 총 {} 건", keyword, statusCode, restrictionTarget.getTotalElements());
+        return restrictionTarget.map(RestrictionDto::from);
     }
 
 

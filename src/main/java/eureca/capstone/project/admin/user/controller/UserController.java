@@ -29,7 +29,7 @@ public class UserController {
             Pageable pageable
     ) {
         UserPageResponseDto userPageResponseDto = userService.getUserList(keyword, pageable);
-        return BaseResponseDto.success(userPageResponseDto);
+        return BaseResponseDto.success( userPageResponseDto);
     }
 
     @Operation(summary = "사용자 상태 변경", description = "특정 사용자의 차단/활성화 상태를 변경합니다.")
