@@ -175,12 +175,18 @@ public class UserServiceTest {
     void getUserReport_Success() {
         // given
         Long userId = 100L;
+        User user = User.builder()
+                .userId(userId)
+                .email("test@example.com")
+                .build();
+
         List<UserReportResponseDto> reports = List.of(
                 new UserReportResponseDto(1L, "욕설 및 비속어 포함", "내용", LocalDateTime.now(), "관리자 승인"),
                 new UserReportResponseDto(2L, "주제 불일치", "내용2", LocalDateTime.now(), "AI 승인")
         );
 
         when(userRepository.getUserReportList(userId)).thenReturn(reports);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // when
         List<UserReportResponseDto> result = userService.getUserReport(userId);
