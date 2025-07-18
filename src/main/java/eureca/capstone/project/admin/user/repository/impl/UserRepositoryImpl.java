@@ -66,7 +66,6 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         return PageableExecutionUtils.getPage(userList, pageable, count::fetchOne);
     }
 
-    // TODO : 허위신고 구현 방법에 따라 다시 검토
     @Override
     public List<UserReportResponseDto> getUserReportList(Long userId) {
 

@@ -185,7 +185,6 @@ public class ReportServiceImpl implements ReportService {
             return statusRepository.findByDomainAndCode(REPORT,"PENDING")
                     .orElseThrow(StatusNotFoundException::new);
         } else {
-            // 변경점: findByCode -> findByDomainAndCode
             return switch (aiResponse.getResult()) {
                 case "ACCEPT" -> statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
                 case "REJECT" -> statusRepository.findByDomainAndCode(REPORT, "AI_REJECTED").orElseThrow(StatusNotFoundException::new);
@@ -230,14 +229,7 @@ public class ReportServiceImpl implements ReportService {
                     applyRestriction(seller, reportType, restrictionType);
                 }
             }
-            case 5 -> { // 중복 게시글
-                if (violationCount >= 5) {
-                    restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    log.info("[checkAndApplyRestriction] 중복 게시글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType);
-                }
-            }
-            case 6 -> { // 비방/저격 포함
+            case 5 -> { // 비방/저격 포함
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
                     log.info("[checkAndApplyRestriction] 비방/저격 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
@@ -329,6 +321,19 @@ public class ReportServiceImpl implements ReportService {
 
         restrictionTarget.updateStatus(statusManager.getStatus("RESTRICTION", "REJECTED"));
         log.info("[acceptRestrictions] 제재 거절 완료. status: {}", restrictionTarget.getStatus().getCode());
+    }
+
+    @Override
+    public ReportDetailResponseDto getReportDetail(Long reportId) {
+
+        ReportDetailResponseDto response = reportHistoryRepository.getReportDetail(reportId);
+
+        if(response == null){
+            throw new ReportNotFoundException();
+        }
+
+        log.info("[getReportDetail] 신고상세 조회 완료 : {} ", response.getReportId());
+        return response;
     }
 
     @Override
