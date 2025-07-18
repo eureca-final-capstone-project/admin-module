@@ -359,7 +359,7 @@ class ReportServiceTest {
                 .content("게시글 작성 제한")
                 .duration(7)
                 .build();
-        // 이 부분을 추가해야 합니다.
+
         Status pendingStatus = Status.builder()
                 .statusId(1L)
                 .domain("RESTRICTION")
@@ -367,11 +367,26 @@ class ReportServiceTest {
                 .description("제재 대기중")
                 .build();
 
+        Status aiAccept = Status.builder()
+                .statusId(2L)
+                .domain("REPORT")
+                .code("AI_ACCEPTED")
+                .description("AI 승인")
+                .build();
+
+        Status adminAccept = Status.builder()
+                .statusId(3L)
+                .domain("REPORT")
+                .code("ADMIN_ACCEPTED")
+                .description("관리자 승인")
+                .build();
+        List<Status> acceptedStatuses = List.of(aiAccept, adminAccept);
+
         when(statusRepository.findByDomainAndCode("RESTRICTION", "PENDING"))
                 .thenReturn(Optional.of(pendingStatus));
 
         // when
-        ReflectionTestUtils.invokeMethod(reportService,"applyRestriction",user1, reportType, restrictionType);
+        ReflectionTestUtils.invokeMethod(reportService,"applyRestriction", user1, reportType, restrictionType, acceptedStatuses);
 
         // then
         verify(restrictionTargetRepository).save(any(RestrictionTarget.class));

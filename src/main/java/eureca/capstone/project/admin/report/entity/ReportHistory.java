@@ -47,9 +47,13 @@ public class ReportHistory extends BaseEntity {
     @Column(name = "is_moderated")
     private boolean isModerated = false;
 
+    @JoinColumn(name = "restriction_target")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private RestrictionTarget restrictionTarget;
+
 
     @Builder
-    public ReportHistory(ReportType reportType, User user, User seller, TransactionFeed transactionFeed, String reason, Status status, Boolean isModerated) {
+    public ReportHistory(ReportType reportType, User user, User seller, TransactionFeed transactionFeed, String reason, Status status, Boolean isModerated, RestrictionTarget restrictionTarget) {
         this.reportType = reportType;
         this.user = user;
         this.seller = seller;
@@ -57,10 +61,15 @@ public class ReportHistory extends BaseEntity {
         this.reason = reason;
         this.status = status;
         this.isModerated = isModerated;
+        this.restrictionTarget = restrictionTarget;
     }
 
     public void updateStatus(Status status) {
         this.status = status;
+    }
+
+    public void updateRestrictionTarget(RestrictionTarget restrictionTarget) {
+        this.restrictionTarget = restrictionTarget;
     }
 
 }
