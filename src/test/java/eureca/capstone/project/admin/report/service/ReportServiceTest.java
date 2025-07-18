@@ -3,7 +3,9 @@ package eureca.capstone.project.admin.report.service;
 import eureca.capstone.project.admin.auth.entity.Authority;
 import eureca.capstone.project.admin.auth.entity.UserAuthority;
 import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
+import eureca.capstone.project.admin.common.exception.custom.ReportNotFoundException;
 import eureca.capstone.project.admin.common.util.StatusManager;
+import eureca.capstone.project.admin.report.dto.response.*;
 import eureca.capstone.project.admin.report.entity.ReportHistory;
 import eureca.capstone.project.admin.report.entity.ReportType;
 import eureca.capstone.project.admin.report.entity.RestrictionTarget;
@@ -12,10 +14,6 @@ import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.admin.user.entity.User;
 import eureca.capstone.project.admin.report.dto.request.ProcessReportDto;
-import eureca.capstone.project.admin.report.dto.response.ReportCountDto;
-import eureca.capstone.project.admin.report.dto.response.ReportHistoryDto;
-import eureca.capstone.project.admin.report.dto.response.RestrictExpiredResponseDto;
-import eureca.capstone.project.admin.report.dto.response.RestrictionDto;
 import eureca.capstone.project.admin.common.exception.custom.AlreadyProcessedReportException;
 import eureca.capstone.project.admin.report.repository.ReportHistoryRepository;
 import eureca.capstone.project.admin.report.repository.RestrictionTargetRepository;
@@ -41,6 +39,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -504,4 +504,38 @@ class ReportServiceTest {
     }
 
 
+    @Test
+    @DisplayName("신고 상세 조회 성공")
+    void getReportDetail_Success() {
+        // given
+        Long reportId = 1L;
+        ReportDetailResponseDto mockDto = ReportDetailResponseDto.builder()
+                .reportId(reportId)
+                .status("AI 거절")
+                .reporterEmail("reporter@example.com")
+                .build();
+
+        when(reportHistoryRepository.getReportDetail(reportId)).thenReturn(mockDto);
+
+        // when
+        ReportDetailResponseDto result = reportService.getReportDetail(reportId);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getReportId()).isEqualTo(reportId);
+        assertThat(result.getReporterEmail()).isEqualTo("reporter@example.com");
+    }
+
+
+    @Test
+    @DisplayName("신고 상세 조회_실패(ReportNotFound)")
+    void getReportDetail_Fail_ReportNotFound() {
+        // given
+        Long reportId = 9999L;
+        when(reportHistoryRepository.getReportDetail(reportId)).thenReturn(null);
+
+        // when, then
+        assertThatThrownBy(() -> reportService.getReportDetail(reportId))
+                .isInstanceOf(ReportNotFoundException.class);
+    }
 }
