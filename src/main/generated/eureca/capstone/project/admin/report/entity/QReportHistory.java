@@ -35,6 +35,8 @@ public class QReportHistory extends EntityPathBase<ReportHistory> {
 
     public final QReportType reportType;
 
+    public final QRestrictionTarget restrictionTarget;
+
     public final eureca.capstone.project.admin.user.entity.QUser seller;
 
     public final eureca.capstone.project.admin.common.entity.QStatus status;
@@ -65,6 +67,7 @@ public class QReportHistory extends EntityPathBase<ReportHistory> {
     public QReportHistory(Class<? extends ReportHistory> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.reportType = inits.isInitialized("reportType") ? new QReportType(forProperty("reportType")) : null;
+        this.restrictionTarget = inits.isInitialized("restrictionTarget") ? new QRestrictionTarget(forProperty("restrictionTarget"), inits.get("restrictionTarget")) : null;
         this.seller = inits.isInitialized("seller") ? new eureca.capstone.project.admin.user.entity.QUser(forProperty("seller"), inits.get("seller")) : null;
         this.status = inits.isInitialized("status") ? new eureca.capstone.project.admin.common.entity.QStatus(forProperty("status")) : null;
         this.transactionFeed = inits.isInitialized("transactionFeed") ? new eureca.capstone.project.admin.transaction_feed.entity.QTransactionFeed(forProperty("transactionFeed"), inits.get("transactionFeed")) : null;

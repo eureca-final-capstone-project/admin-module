@@ -1,6 +1,5 @@
 package eureca.capstone.project.admin.auth.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import eureca.capstone.project.admin.auth.constant.FilterConstant;
 import eureca.capstone.project.admin.auth.filter.JwtAuthenticationFilter;
 import eureca.capstone.project.admin.auth.util.CookieUtil;
@@ -9,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -42,6 +42,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(FilterConstant.whiteList).permitAll()
+                        .requestMatchers(FilterConstant.REFRESH_PATH).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/admin/reports").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers(FilterConstant.blackList).authenticated()
                         .anyRequest().permitAll()
                 )
