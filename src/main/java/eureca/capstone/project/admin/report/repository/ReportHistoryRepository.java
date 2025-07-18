@@ -4,6 +4,7 @@ import eureca.capstone.project.admin.report.entity.ReportHistory;
 import eureca.capstone.project.admin.report.repository.custom.ReportHistoryRepositoryCustom;
 import eureca.capstone.project.admin.report.entity.ReportType;
 import eureca.capstone.project.admin.common.entity.Status;
+import eureca.capstone.project.admin.report.repository.custom.ReportHistoryRepositoryCustom;
 import eureca.capstone.project.admin.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,4 +25,6 @@ public interface ReportHistoryRepository extends JpaRepository<ReportHistory, Lo
     Page<ReportHistory> findByStatus(Status status, Pageable pageable);
 
     boolean existsByUserAndSeller(User user, User seller);
+
+
 }

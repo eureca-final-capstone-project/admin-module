@@ -1,10 +1,7 @@
 package eureca.capstone.project.admin.report.service;
 
 import eureca.capstone.project.admin.report.dto.request.ProcessReportDto;
-import eureca.capstone.project.admin.report.dto.response.ReportCountDto;
-import eureca.capstone.project.admin.report.dto.response.ReportHistoryDto;
-import eureca.capstone.project.admin.report.dto.response.RestrictExpiredResponseDto;
-import eureca.capstone.project.admin.report.dto.response.RestrictionDto;
+import eureca.capstone.project.admin.report.dto.response.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -22,4 +19,5 @@ public interface ReportService {
     void expireRestrictions(List<Long> restrictionTargetIds);
     void acceptRestrictions(Long restrictionTargetId);
     void rejectRestrictions(Long restrictionTargetId);
+    ReportDetailResponseDto getReportDetail(Long reportId);
 }

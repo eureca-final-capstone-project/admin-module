@@ -3,10 +3,7 @@ package eureca.capstone.project.admin.report.controller;
 import eureca.capstone.project.admin.report.dto.request.CreateReportRequestDto;
 import eureca.capstone.project.admin.report.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.report.dto.request.UpdateRestrictionStatusRequestDto;
-import eureca.capstone.project.admin.report.dto.response.ReportCountDto;
-import eureca.capstone.project.admin.report.dto.response.ReportHistoryDto;
-import eureca.capstone.project.admin.report.dto.response.RestrictExpiredResponseDto;
-import eureca.capstone.project.admin.report.dto.response.RestrictionDto;
+import eureca.capstone.project.admin.report.dto.response.*;
 import eureca.capstone.project.admin.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.admin.report.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +37,12 @@ public class ReportController {
             @RequestParam(required = false) String keyword,
             Pageable pageable) {
         return BaseResponseDto.success(reportService.getReportHistoryListByStatusCode(statusCode, keyword, pageable));
+    }
+
+    @Operation(summary = "신고 내역 상세 조회", description = "신고 내역을 상세 조회합니다.")
+    @GetMapping("/reports/{reportId}/detail")
+    public BaseResponseDto<ReportDetailResponseDto> getReportDetail(@PathVariable("reportId") Long reportId) {
+        return BaseResponseDto.success(reportService.getReportDetail(reportId));
     }
 
     @Operation(summary = "제재 내역 목록 조회", description = "제재 대상 내역을 페이징하여 조회합니다. status 파라미터로 필터링할 수 있습니다.")
