@@ -1,5 +1,6 @@
 package eureca.capstone.project.admin.report.controller;
 
+import eureca.capstone.project.admin.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.admin.report.dto.request.CreateReportRequestDto;
 import eureca.capstone.project.admin.report.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.report.dto.request.UpdateRestrictionStatusRequestDto;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "신고/제재 API", description = "사용자 신고 접수 및 관리자 기능 API")
@@ -56,9 +58,10 @@ public class ReportController {
 
     @Operation(summary = "게시글 신고 접수", description = "사용자가 게시글을 신고하면 AI가 1차 검토 후 접수합니다.")
     @PostMapping("/reports")
-    public BaseResponseDto<Void> createReport(@RequestBody CreateReportRequestDto request) {
+    public BaseResponseDto<Void> createReport(@RequestBody CreateReportRequestDto request,
+                                              @AuthenticationPrincipal CustomUserDetailsDto userDetailsDto) {
         reportService.createReportAndProcessWithAI(
-                request.getUserId(),
+                userDetailsDto.getUserId(),
                 request.getTransactionFeedId(),
                 request.getReportTypeId(),
                 request.getReason()
