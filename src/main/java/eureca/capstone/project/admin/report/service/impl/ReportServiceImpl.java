@@ -47,7 +47,6 @@ public class ReportServiceImpl implements ReportService {
     private final ReportTypeRepository reportTypeRepository;
     private final UserRepository userRepository;
     private final TransactionFeedRepository transactionFeedRepository;
-    private final StatusRepository statusRepository;
     private final AIReviewService aiReviewService;
     private final StatusManager statusManager;
     private final UserAuthorityRepository userAuthorityRepository;
@@ -86,10 +85,8 @@ public class ReportServiceImpl implements ReportService {
         ReportHistory reportHistory = reportHistoryRepository.findById(reportHistoryId)
                 .orElseThrow(ReportNotFoundException::new);
 
-        Status pendingStatus = statusRepository.findByDomainAndCode(REPORT,"PENDING")
-                .orElseThrow(StatusNotFoundException::new);
-        Status aiRejectStatus = statusRepository.findByDomainAndCode(REPORT,"AI_REJECTED")
-                .orElseThrow(StatusNotFoundException::new);
+        Status pendingStatus = statusManager.getStatus(REPORT,"PENDING");
+        Status aiRejectStatus = statusManager.getStatus(REPORT,"AI_REJECTED");
 
         List<Status> processableStatus = List.of(pendingStatus, aiRejectStatus);
         if (!processableStatus.contains(reportHistory.getStatus())) {
@@ -97,18 +94,14 @@ public class ReportServiceImpl implements ReportService {
         }
 
         if (!request.getApproved()) {
-            // 변경점: findByCode -> findByDomainAndCode
-            Status adminRejectedStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_REJECTED")
-                    .orElseThrow(StatusNotFoundException::new);
+            Status adminRejectedStatus = statusManager.getStatus(REPORT, "ADMIN_REJECTED");
             reportHistory.updateStatus(adminRejectedStatus);
 
             log.info("[processReportByAdmin] 관리자 신고 거절. status={}", reportHistory.getStatus().getCode());
             return;
         }
 
-        // 변경점: findByCode -> findByDomainAndCode
-        Status adminAcceptedStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_ACCEPTED")
-                .orElseThrow(StatusNotFoundException::new);
+        Status adminAcceptedStatus = statusManager.getStatus(REPORT, "ADMIN_ACCEPTED");
         reportHistory.updateStatus(adminAcceptedStatus);
 
         log.info("[processReportByAdmin] 관리자 신고 승인. status={}", reportHistory.getStatus().getCode());
@@ -161,8 +154,7 @@ public class ReportServiceImpl implements ReportService {
 
         log.info("[createReportAndProcessWithAI] AI 판단 이후 신고내역 추가. 피신고자: {}", seller.getEmail());
 
-        Status aiAcceptedStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED")
-                .orElseThrow(StatusNotFoundException::new);
+        Status aiAcceptedStatus = statusManager.getStatus(REPORT, "AI_ACCEPTED");
         if (initialStatus.equals(aiAcceptedStatus)) {
             log.info("[createReportAndProcessWithAI] AI 승인 완료");
             checkAndApplyRestriction(seller, reportType);
@@ -173,13 +165,12 @@ public class ReportServiceImpl implements ReportService {
     private Status getReportHistoryStatus(AIReviewResponseDto aiResponse) {
         if (aiResponse.getConfidence() < 0.8) {
             log.info("[getReportHistoryStatus] 신고내용 AI 판단 모호 (신뢰도 : {})", aiResponse.getConfidence());
-            return statusRepository.findByDomainAndCode(REPORT,"PENDING")
-                    .orElseThrow(StatusNotFoundException::new);
+            return statusManager.getStatus(REPORT,"PENDING");
         } else {
             return switch (aiResponse.getResult()) {
-                case "ACCEPT" -> statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
-                case "REJECT" -> statusRepository.findByDomainAndCode(REPORT, "AI_REJECTED").orElseThrow(StatusNotFoundException::new);
-                default -> statusRepository.findByDomainAndCode(REPORT,"PENDING").orElseThrow(StatusNotFoundException::new);
+                case "ACCEPT" -> statusManager.getStatus(REPORT, "AI_ACCEPTED");
+                case "REJECT" -> statusManager.getStatus(REPORT, "AI_REJECTED");
+                default -> statusManager.getStatus(REPORT,"PENDING");
             };
         }
     }
@@ -194,8 +185,8 @@ public class ReportServiceImpl implements ReportService {
         => 제재 대상에 등록할 때 신고테이블에도 restrictionTarget 값 넣어줘야 함 (update)
      */
     private void checkAndApplyRestriction(User seller, ReportType reportType) {
-        Status aiAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED").orElseThrow(StatusNotFoundException::new);
-        Status adminAcceptStatus = statusRepository.findByDomainAndCode(REPORT, "ADMIN_ACCEPTED").orElseThrow(StatusNotFoundException::new);
+        Status aiAcceptStatus = statusManager.getStatus(REPORT, "AI_ACCEPTED");
+        Status adminAcceptStatus = statusManager.getStatus(REPORT, "ADMIN_ACCEPTED");
         List<Status> acceptedStatuses = List.of(aiAcceptStatus, adminAcceptStatus);
 
         long violationCount = reportHistoryRepository
@@ -242,8 +233,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private void applyRestriction(User user, ReportType reportType, RestrictionType restrictionType, List<Status> acceptedStatuses) {
-        Status status = statusRepository.findByDomainAndCode(RESTRICTION, "PENDING")
-                .orElseThrow(StatusNotFoundException::new);
+        Status status = statusManager.getStatus(RESTRICTION, "PENDING");
         RestrictionTarget restriction = RestrictionTarget.builder()
                 .user(user)
                 .reportType(reportType)
@@ -271,8 +261,7 @@ public class ReportServiceImpl implements ReportService {
             log.info("[expireRestrictions] 제재만료 대상 없음");
             return;
         }
-        Status expiredStatus = statusRepository.findByDomainAndCode(RESTRICTION, "RESTRICT_EXPIRATION")
-                .orElseThrow(StatusNotFoundException::new);
+        Status expiredStatus = statusManager.getStatus(RESTRICTION, "RESTRICT_EXPIRATION");
         restrictionTargetRepository.updateStatusForIds(restrictionTargetIds, expiredStatus);
 
         log.info("[expireRestrictions] 제재만료처리 완료");
@@ -283,6 +272,14 @@ public class ReportServiceImpl implements ReportService {
     public void acceptRestrictions(Long restrictionTargetId) {
         RestrictionTarget restrictionTarget = restrictionTargetRepository.findById(restrictionTargetId)
                 .orElseThrow(RestrictionTargetNotFoundException::new);
+
+        Status completedStatus = statusRepository.findByDomainAndCode(RESTRICTION, "COMPLETED")
+                .orElseThrow(StatusNotFoundException::new);
+
+        if(restrictionTarget.getStatus().equals(completedStatus)) {
+            throw new AlreadyProcessedRestrictionException();
+        }
+
         User user = restrictionTarget.getUser();
         Integer duration = restrictionTarget.getRestrictionType().getDuration();
 
@@ -322,6 +319,13 @@ public class ReportServiceImpl implements ReportService {
         restrictionTarget.updateExpiresAt(expiresAt);
         restrictionTarget.updateStatus(statusManager.getStatus("RESTRICTION", "COMPLETED"));
         log.info("[acceptRestrictions] 제재 완료. expiresAt: {}, status: {}", expiresAt, restrictionTarget.getStatus().getCode());
+
+        //제재와 연관된 신고 내역들의 상태를 '제재 완료'로 변경
+        Status reportCompletedStatus = statusManager.getStatus("REPORT", "COMPLETED");
+        List<ReportHistory> relatedReports = reportHistoryRepository.findByRestrictionTarget(restrictionTarget);
+        relatedReports.forEach(report -> report.updateStatus(reportCompletedStatus));
+        reportHistoryRepository.saveAll(relatedReports);
+        log.info("[acceptRestrictions] 연관된 신고 내역 {}건의 상태를 '제재 완료'로 변경했습니다.", relatedReports.size());
     }
 
     @Transactional
@@ -330,8 +334,21 @@ public class ReportServiceImpl implements ReportService {
         RestrictionTarget restrictionTarget = restrictionTargetRepository.findById(restrictionTargetId)
                 .orElseThrow(RestrictionTargetNotFoundException::new);
 
+        Status rejectedStatus = statusRepository.findByDomainAndCode(RESTRICTION, "REJECTED")
+                .orElseThrow(StatusNotFoundException::new);
+
+        if(restrictionTarget.getStatus().equals(rejectedStatus)) {
+            throw new AlreadyProcessedRestrictionException();
+        }
+
         restrictionTarget.updateStatus(statusManager.getStatus("RESTRICTION", "REJECTED"));
         log.info("[acceptRestrictions] 제재 거절 완료. status: {}", restrictionTarget.getStatus().getCode());
+
+        Status reportRejectedStatus = statusManager.getStatus("REPORT", "REJECTED");
+        List<ReportHistory> relatedReports = reportHistoryRepository.findByRestrictionTarget(restrictionTarget);
+        relatedReports.forEach(report -> report.updateStatus(reportRejectedStatus));
+        reportHistoryRepository.saveAll(relatedReports);
+        log.info("[rejectRestrictions] 연관된 신고 내역 {}건의 상태를 '제재 미승인'으로 변경했습니다.", relatedReports.size());
     }
 
     @Override
@@ -362,8 +379,7 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public RestrictExpiredResponseDto getRestrictExpiredList() {
-        Status completedStatus = statusRepository.findByDomainAndCode(RESTRICTION, "COMPLETED")
-                .orElseThrow(StatusNotFoundException::new);
+        Status completedStatus = statusManager.getStatus(RESTRICTION, "COMPLETED");
 
         List<RestrictionTarget> expiredTargets = restrictionTargetRepository.findExpiredRestrictions(
                 LocalDateTime.now(),
