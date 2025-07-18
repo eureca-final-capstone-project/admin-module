@@ -229,14 +229,7 @@ public class ReportServiceImpl implements ReportService {
                     applyRestriction(seller, reportType, restrictionType);
                 }
             }
-            case 5 -> { // 중복 게시글
-                if (violationCount >= 5) {
-                    restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    log.info("[checkAndApplyRestriction] 중복 게시글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType);
-                }
-            }
-            case 6 -> { // 비방/저격 포함
+            case 5 -> { // 비방/저격 포함
                 if (violationCount >= 5) {
                     restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
                     log.info("[checkAndApplyRestriction] 비방/저격 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
