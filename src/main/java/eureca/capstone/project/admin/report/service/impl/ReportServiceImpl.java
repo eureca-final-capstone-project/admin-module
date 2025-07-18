@@ -3,7 +3,6 @@ package eureca.capstone.project.admin.report.service.impl;
 import eureca.capstone.project.admin.auth.entity.Authority;
 import eureca.capstone.project.admin.auth.entity.UserAuthority;
 import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
-import eureca.capstone.project.admin.common.entity.StatusConst;
 import eureca.capstone.project.admin.common.exception.custom.*;
 import eureca.capstone.project.admin.common.repository.StatusRepository;
 import eureca.capstone.project.admin.common.util.StatusManager;
@@ -345,6 +344,19 @@ public class ReportServiceImpl implements ReportService {
         }
 
         log.info("[getReportDetail] 신고상세 조회 완료 : {} ", response.getReportId());
+        return response;
+    }
+
+    @Override
+    public List<RestrictionReportResponseDto> getRestrictionReportHistory(Long restrictionId) {
+
+        RestrictionTarget restriction = restrictionTargetRepository.findById(restrictionId)
+                .orElseThrow(RestrictionTargetNotFoundException::new);
+
+        List<RestrictionReportResponseDto> response = reportHistoryRepository.getRestrictionReportList(restrictionId);
+
+        log.info("[getRestrictionReportHistory] 제재와 연관된 신고내역 조회: 총 {} 건", response.size());
+
         return response;
     }
 

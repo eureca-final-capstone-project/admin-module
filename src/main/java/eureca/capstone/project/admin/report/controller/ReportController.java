@@ -16,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "신고/제재 API", description = "사용자 신고 접수 및 관리자 기능 API")
 @RestController
 @RequestMapping("/admin")
@@ -54,6 +56,12 @@ public class ReportController {
             @Parameter(description = "검색어 (신고자 이메일)") @RequestParam(required = false) String keyword,
             Pageable pageable) {
         return BaseResponseDto.success(reportService.getRestrictionListByStatusCode(statusCode,keyword, pageable));
+    }
+
+    @Operation(summary = "제재 ID로 신고 내역 조회", description = "제재 ID를 통해 연관된 신고 내역을 조회합니다.")
+    @GetMapping("restricts/{restrictId}/report-list")
+    public BaseResponseDto<List<RestrictionReportResponseDto>> getRestrictionReportHistory(@PathVariable("restrictId") Long restrictId) {
+        return BaseResponseDto.success(reportService.getRestrictionReportHistory(restrictId));
     }
 
     @Operation(summary = "게시글 신고 접수", description = "사용자가 게시글을 신고하면 AI가 1차 검토 후 접수합니다.")
