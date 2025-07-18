@@ -36,8 +36,10 @@ public class ReportController {
     public BaseResponseDto<Page<ReportHistoryDto>> getReportHistoryList(
             @Parameter(description = "필터링할 신고 상태 <br>(PENDING, AI_ACCEPTED, AI_REJECTED, ADMIN_ACCEPTED, ADMIN_REJECTED, COMPLETED, REJECTED)")
             @RequestParam(required = false) String statusCode,
+            @Parameter(description = "검색어 (신고자 이메일)")
+            @RequestParam(required = false) String keyword,
             Pageable pageable) {
-        return BaseResponseDto.success(reportService.getReportHistoryListByStatusCode(statusCode, pageable));
+        return BaseResponseDto.success(reportService.getReportHistoryListByStatusCode(statusCode, keyword, pageable));
     }
 
     @Operation(summary = "제재 내역 목록 조회", description = "제재 대상 내역을 페이징하여 조회합니다. status 파라미터로 필터링할 수 있습니다.")

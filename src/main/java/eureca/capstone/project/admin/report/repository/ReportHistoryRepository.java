@@ -1,6 +1,7 @@
 package eureca.capstone.project.admin.report.repository;
 
 import eureca.capstone.project.admin.report.entity.ReportHistory;
+import eureca.capstone.project.admin.report.repository.custom.ReportHistoryRepositoryCustom;
 import eureca.capstone.project.admin.report.entity.ReportType;
 import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.user.entity.User;
@@ -13,7 +14,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface ReportHistoryRepository extends JpaRepository<ReportHistory, Long> {
+public interface ReportHistoryRepository extends JpaRepository<ReportHistory, Long>, ReportHistoryRepositoryCustom {
 
     @Query("SELECT COUNT(rh) FROM ReportHistory rh WHERE rh.createdAt >= :startOfDay")
     Long countByCreatedAtAfter(@Param("startOfDay") LocalDateTime startOfDay);

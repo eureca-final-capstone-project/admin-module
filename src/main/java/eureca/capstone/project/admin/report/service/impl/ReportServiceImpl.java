@@ -67,17 +67,11 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<ReportHistoryDto> getReportHistoryListByStatusCode(String statusCode, Pageable pageable) {
-        if (statusCode == null || statusCode.isBlank()) {
-            Page<ReportHistoryDto> response = reportHistoryRepository.findAll(pageable).map(ReportHistoryDto::from);
-            log.info("[getReportHistoryListByStatusCode] 신고내역 전체 조회: {}건", response.getTotalElements());
-            return response;
-        }
-        Status status = statusRepository.findByDomainAndCode(REPORT, statusCode)
-                .orElseThrow(ReportTypeNotFoundException::new);
-        Page<ReportHistoryDto> response = reportHistoryRepository.findByStatus(status, pageable).map(ReportHistoryDto::from);
-        log.info("[getReportHistoryListByStatusCode] 신고내역 상태 필터링해서 조회: {}건. status = {}", response.getTotalElements(), statusCode);
-        return response;
+    public Page<ReportHistoryDto> getReportHistoryListByStatusCode(String statusCode,String keyword, Pageable pageable) {
+        // Querydsl을 사용하는 custom repository 메서드를 호출하여 동적 쿼리 실행
+        Page<ReportHistory> reportHistories = reportHistoryRepository.findByCriteria(statusCode, keyword, pageable);
+        log.info("[getReportHistoryListByStatusCode] 신고 내역 조회 (keyword: {}, statusCode: {}): 총 {} 건", keyword, statusCode, reportHistories.getTotalElements());
+        return reportHistories.map(ReportHistoryDto::from);
     }
 
     @Override
