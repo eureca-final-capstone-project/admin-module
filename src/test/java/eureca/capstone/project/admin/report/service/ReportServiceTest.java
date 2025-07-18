@@ -4,6 +4,7 @@ import eureca.capstone.project.admin.auth.entity.Authority;
 import eureca.capstone.project.admin.auth.entity.UserAuthority;
 import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
 import eureca.capstone.project.admin.common.exception.custom.ReportNotFoundException;
+import eureca.capstone.project.admin.common.exception.custom.RestrictionTargetNotFoundException;
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.report.dto.response.*;
 import eureca.capstone.project.admin.report.entity.ReportHistory;
@@ -607,5 +608,55 @@ class ReportServiceTest {
         // when, then
         assertThatThrownBy(() -> reportService.getReportDetail(reportId))
                 .isInstanceOf(ReportNotFoundException.class);
+    }
+
+
+    @DisplayName("제재 id로 신고내역 조회_성공")
+    @Test
+    void getRestrictionReportHistory_Success() {
+        // given
+        Long restrictionId = 1L;
+
+        RestrictionTarget restrictionTarget = RestrictionTarget.builder().build();
+        ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId",restrictionId);
+
+        List<RestrictionReportResponseDto> mockResponse = List.of(
+                new RestrictionReportResponseDto(1L, "욕설 및 비속어 포함", "욕설입니다", LocalDateTime.now(), "AI 승인"),
+                new RestrictionReportResponseDto(2L, "욕설 및 비속어 포함", "또 욕설", LocalDateTime.now(), "관리자 승인")
+        );
+
+        when(restrictionTargetRepository.findById(restrictionId))
+                .thenReturn(Optional.of(restrictionTarget));
+
+        when(reportHistoryRepository.getRestrictionReportList(restrictionId))
+                .thenReturn(mockResponse);
+
+        // when
+        List<RestrictionReportResponseDto> result = reportService.getRestrictionReportHistory(restrictionId);
+
+        // then
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result.get(0).getReportId()).isEqualTo(1L);
+        assertThat(result.get(1).getStatus()).isEqualTo("관리자 승인");
+
+        verify(restrictionTargetRepository).findById(restrictionId);
+        verify(reportHistoryRepository).getRestrictionReportList(restrictionId);
+    }
+
+    @DisplayName("제재 id로 신고내역 조회_RestrictionNotFound")
+    @Test
+    void getRestrictionReportHistory_RestrictionNotFound() {
+        // given
+        Long restrictionId = 99L;
+
+        when(restrictionTargetRepository.findById(restrictionId))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> reportService.getRestrictionReportHistory(restrictionId))
+                .isInstanceOf(RestrictionTargetNotFoundException.class);
+
+        verify(restrictionTargetRepository).findById(restrictionId);
+        verify(reportHistoryRepository, never()).getRestrictionReportList(any());
     }
 }
