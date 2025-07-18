@@ -70,21 +70,42 @@ public class UserServiceTest {
     }
 
     @Test
-    @DisplayName("사용자 목록 조회_성공")
-    void getUserList_Success() {
+    @DisplayName("사용자 목록 조회_검색어 없음_성공")
+    void getUserList_NoKeyword_Success() {
         // given
+        String keyword = null;
         Page<UserResponseDto> page = new PageImpl<>(List.of(user1, user2), pageable, 2);
-        when(userRepository.getUserList(pageable)).thenReturn(page);
+        when(userRepository.getUserList(keyword, pageable)).thenReturn(page);
 
         // when
-        UserPageResponseDto result = userService.getUserList(pageable);
+        UserPageResponseDto result = userService.getUserList(keyword, pageable);
 
         // then
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
         assertEquals(0, result.getPage());
         assertEquals("nick1", result.getContent().get(0).getNickName());
-        verify(userRepository).getUserList(pageable);
+        verify(userRepository).getUserList(keyword, pageable);
+    }
+
+    @Test
+    @DisplayName("사용자 목록 조회_검색어 있음_성공")
+    void getUserList_WithKeyword_Success() {
+        // given
+        String keyword = "nick1";
+        // "nick1"으로 검색 시 user1만 포함된 페이지가 반환될 것을 가정
+        Page<UserResponseDto> page = new PageImpl<>(List.of(user1), pageable, 1);
+        when(userRepository.getUserList(keyword, pageable)).thenReturn(page);
+
+        // when
+        UserPageResponseDto result = userService.getUserList(keyword, pageable);
+
+        // then
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals(1, result.getContent().size());
+        assertEquals("nick1", result.getContent().get(0).getNickName());
+        verify(userRepository).getUserList(keyword, pageable);
     }
 
     @Test

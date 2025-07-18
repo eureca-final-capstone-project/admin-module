@@ -53,7 +53,7 @@ public class QRestrictionTarget extends EntityPathBase<RestrictionTarget> {
     public QRestrictionTarget(Class<? extends RestrictionTarget> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.reportType = inits.isInitialized("reportType") ? new QReportType(forProperty("reportType")) : null;
-        this.restrictionType = inits.isInitialized("restrictionType") ? new QRestrictionType(forProperty("restrictionType")) : null;
+        this.restrictionType = inits.isInitialized("restrictionType") ? new QRestrictionType(forProperty("restrictionType"), inits.get("restrictionType")) : null;
         this.status = inits.isInitialized("status") ? new eureca.capstone.project.admin.common.entity.QStatus(forProperty("status")) : null;
         this.user = inits.isInitialized("user") ? new eureca.capstone.project.admin.user.entity.QUser(forProperty("user"), inits.get("user")) : null;
     }

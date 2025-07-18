@@ -2,6 +2,7 @@ package eureca.capstone.project.admin.user.repository.impl;
 
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import eureca.capstone.project.admin.user.dto.UserInformationDto;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import java.util.HashSet;
 import java.util.List;
@@ -35,8 +37,8 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
 
     // 사용자 목록 조회
     @Override
-    public Page<UserResponseDto> getUserList(Pageable pageable) {
-        log.info("[getUserList] 시작: {}", pageable);
+    public Page<UserResponseDto> getUserList(String keyword, Pageable pageable) {
+        log.info("[getUserList] 시작: keyword={}, pageable={}", keyword, pageable);
 
         List<UserResponseDto> userList = jpaQueryFactory
                 .select(Projections.constructor(UserResponseDto.class,
@@ -51,8 +53,10 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                         ))
                 .from(user)
                 .leftJoin(reportHistory).on(reportHistory.seller.eq(user)
-                                        .and(reportHistory.status.statusId.in(26,28)))
+                                        .and(reportHistory.status.statusId.in(26, 28)))
+                .where(searchCondition(keyword))
                 .groupBy(user.userId)
+                .orderBy(user.createdAt.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -61,12 +65,12 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
 
         JPAQuery<Long> count = jpaQueryFactory
                 .select(user.countDistinct())
-                .from(user);
+                .from(user)
+                .where(searchCondition(keyword));
 
         return PageableExecutionUtils.getPage(userList, pageable, count::fetchOne);
     }
 
-    // TODO : 허위신고 구현 방법에 따라 다시 검토
     @Override
     public List<UserReportResponseDto> getUserReportList(Long userId) {
 
@@ -140,5 +144,15 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         log.info("[findUserInformation] DTO 생성 완료 {}", userInformationDto);
 
         return userInformationDto;
+    }
+
+    private BooleanExpression searchCondition(String keyword) {
+        // keyword가 비어있거나 null이면 null을 반환하여 where절에서 무시됩니다.
+        if (!StringUtils.hasText(keyword)) {
+            return null;
+        }
+        // email LIKE '%keyword%' OR nickname LIKE '%keyword%' (대소문자 무시)
+        return user.email.containsIgnoreCase(keyword)
+                .or(user.nickname.containsIgnoreCase(keyword));
     }
 }
