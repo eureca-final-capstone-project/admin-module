@@ -283,10 +283,9 @@ class ReportServiceTest {
 
         report1.updateStatus(pending);
 
-        // 변경점: findByCode -> findByDomainAndCode
-        when(statusRepository.findByDomainAndCode("REPORT", "PENDING")).thenReturn(Optional.of(pending));
-        when(statusRepository.findByDomainAndCode("REPORT", "AI_REJECTED")).thenReturn(Optional.of(aiRejected));
-        when(statusRepository.findByDomainAndCode("REPORT", "ADMIN_REJECTED")).thenReturn(Optional.of(adminRejected));
+        when(statusManager.getStatus("REPORT", "PENDING")).thenReturn(pending);
+        when(statusManager.getStatus("REPORT", "AI_REJECTED")).thenReturn(aiRejected);
+        when(statusManager.getStatus("REPORT", "ADMIN_REJECTED")).thenReturn(adminRejected);
         when(reportHistoryRepository.findById(1L)).thenReturn(Optional.of(report1));
 
         // when
@@ -313,10 +312,10 @@ class ReportServiceTest {
 
         when(reportHistoryRepository.findById(1L)).thenReturn(Optional.of(report1));
 
-        when(statusRepository.findByDomainAndCode("REPORT", "PENDING")).thenReturn(Optional.of(pending));
-        when(statusRepository.findByDomainAndCode("REPORT", "AI_REJECTED")).thenReturn(Optional.of(aiRejected));
-        when(statusRepository.findByDomainAndCode("REPORT", "ADMIN_ACCEPTED")).thenReturn(Optional.of(adminAccepted));
-        when(statusRepository.findByDomainAndCode("REPORT", "AI_ACCEPTED")).thenReturn(Optional.of(aiAccepted));
+        when(statusManager.getStatus("REPORT", "PENDING")).thenReturn(pending);
+        when(statusManager.getStatus("REPORT", "AI_REJECTED")).thenReturn(aiRejected);
+        when(statusManager.getStatus("REPORT", "ADMIN_ACCEPTED")).thenReturn(adminAccepted);
+        when(statusManager.getStatus("REPORT", "AI_ACCEPTED")).thenReturn(aiAccepted);
 
         // when
         reportService.processReportByAdmin(1L, request);
@@ -334,8 +333,8 @@ class ReportServiceTest {
         ReflectionTestUtils.setField(request, "approved", true);
 
         // 변경점: findByCode -> findByDomainAndCode
-        when(statusRepository.findByDomainAndCode("REPORT","PENDING")).thenReturn(Optional.of(Status.builder().code("PENDING").build()));
-        when(statusRepository.findByDomainAndCode("REPORT","AI_REJECTED")).thenReturn(Optional.of(Status.builder().code("AI_REJECTED").build()));
+        when(statusManager.getStatus("REPORT","PENDING")).thenReturn(Status.builder().code("PENDING").build());
+        when(statusManager.getStatus("REPORT","AI_REJECTED")).thenReturn(Status.builder().code("AI_REJECTED").build());
         when(reportHistoryRepository.findById(2L)).thenReturn(Optional.of(report2));
 
         // then
@@ -383,8 +382,8 @@ class ReportServiceTest {
                 .build();
         List<Status> acceptedStatuses = List.of(aiAccept, adminAccept);
 
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "PENDING"))
-                .thenReturn(Optional.of(pendingStatus));
+        when(statusManager.getStatus("RESTRICTION", "PENDING"))
+                .thenReturn(pendingStatus);
 
         // when
         ReflectionTestUtils.invokeMethod(reportService,"applyRestriction", user1, reportType, restrictionType, acceptedStatuses);
@@ -419,7 +418,7 @@ class ReportServiceTest {
         // given
         List<Long> ids = List.of(1L, 2L, 3L);
         Status restrictExpire = Status.builder().code("RESTRICT_EXPIRATION").build();
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "RESTRICT_EXPIRATION")).thenReturn(Optional.of(restrictExpire));
+        when(statusManager.getStatus("RESTRICTION", "RESTRICT_EXPIRATION")).thenReturn(restrictExpire);
 
         // when
         reportService.expireRestrictions(ids);
@@ -440,7 +439,7 @@ class ReportServiceTest {
 
         Status completed = Status.builder().code("COMPLETED").build();
         // 변경점: findByCode -> findByDomainAndCode
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED")).thenReturn(Optional.of(completed));
+        when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completed);
         when(restrictionTargetRepository.findExpiredRestrictions(any(LocalDateTime.class), eq(completed)))
                 .thenReturn(List.of(expired1, expired2));
 
