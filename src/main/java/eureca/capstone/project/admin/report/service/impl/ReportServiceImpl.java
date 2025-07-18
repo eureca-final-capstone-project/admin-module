@@ -331,6 +331,19 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    public ReportDetailResponseDto getReportDetail(Long reportId) {
+
+        ReportDetailResponseDto response = reportHistoryRepository.getReportDetail(reportId);
+
+        if(response == null){
+            throw new ReportNotFoundException();
+        }
+
+        log.info("[getReportDetail] 신고상세 조회 완료 : {} ", response.getReportId());
+        return response;
+    }
+
+    @Override
     public RestrictExpiredResponseDto getRestrictExpiredList() {
         Status completedStatus = statusRepository.findByDomainAndCode(RESTRICTION, "COMPLETED")
                 .orElseThrow(StatusNotFoundException::new);
