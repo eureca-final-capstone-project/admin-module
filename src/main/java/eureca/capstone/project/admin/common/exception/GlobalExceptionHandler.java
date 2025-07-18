@@ -19,6 +19,12 @@ public class GlobalExceptionHandler {
         return BaseResponseDto.fail(ErrorCode.REPORT_NOT_FOUND);
     }
 
+    @ExceptionHandler(UserNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handleUserNotFoundException(UserNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.USER_NOT_FOUND);
+    }
+
     @ExceptionHandler(ReportTypeNotFoundException.class)
     public BaseResponseDto<ErrorResponseDto> handleReportTypeNotFoundException(ReportTypeNotFoundException e) {
         log.error(e.getMessage(), e);

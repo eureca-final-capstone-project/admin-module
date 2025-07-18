@@ -131,6 +131,13 @@ public class ReportServiceImpl implements ReportService {
             throw new DuplicateReportException();
         }
 
+        log.info("[신고 접수] 신고자: {}, 피드 제목: [{}], 피드 내용: [{}], 신고 유형: {}, 신고 이유: {}",
+                user.getEmail(),
+                transactionFeed.getTitle(),
+                transactionFeed.getContent(),
+                reportType.getType(),
+                reason);
+
         AIReviewRequestDto requestDto = new AIReviewRequestDto(
                 transactionFeed.getTitle(),
                 transactionFeed.getContent(),
@@ -153,9 +160,8 @@ public class ReportServiceImpl implements ReportService {
                 .build();
         reportHistoryRepository.save(newReport);
 
-        log.info("[createReportAndProcessWithAI] AI 판단 이후 신고내역 추가. 피신고자: {}", seller);
+        log.info("[createReportAndProcessWithAI] AI 판단 이후 신고내역 추가. 피신고자: {}", seller.getEmail());
 
-        // 변경점: findByCode -> findByDomainAndCode
         Status aiAcceptedStatus = statusRepository.findByDomainAndCode(REPORT, "AI_ACCEPTED")
                 .orElseThrow(StatusNotFoundException::new);
         if (initialStatus.equals(aiAcceptedStatus)) {
