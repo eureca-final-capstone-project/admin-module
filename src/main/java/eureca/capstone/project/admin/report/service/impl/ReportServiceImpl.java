@@ -85,11 +85,11 @@ public class ReportServiceImpl implements ReportService {
         ReportHistory reportHistory = reportHistoryRepository.findById(reportHistoryId)
                 .orElseThrow(ReportNotFoundException::new);
 
-        Status pendingStatus = statusManager.getStatus(REPORT,"PENDING");
-        Status aiRejectStatus = statusManager.getStatus(REPORT,"AI_REJECTED");
+        Long pendingStatusId = statusManager.getStatus(REPORT,"PENDING").getStatusId();
+        Long aiRejectStatusId = statusManager.getStatus(REPORT,"AI_REJECTED").getStatusId();
 
-        List<Status> processableStatus = List.of(pendingStatus, aiRejectStatus);
-        if (!processableStatus.contains(reportHistory.getStatus())) {
+        List<Long> processableStatus = List.of(pendingStatusId, aiRejectStatusId);
+        if (!processableStatus.contains(reportHistory.getStatus().getStatusId())) {
             throw new AlreadyProcessedReportException();
         }
 
