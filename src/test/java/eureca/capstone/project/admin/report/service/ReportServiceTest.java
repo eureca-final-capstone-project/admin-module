@@ -94,7 +94,7 @@ class ReportServiceTest {
                 .transactionFeed(transactionFeed1)
                 .reason("욕설 및 비속어 포함")
                 .reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build())
-                .status(Status.builder().code("PENDING").description("검수 대기중").build()) // 상태 Enum 사용
+                .status(Status.builder().statusId(25L).code("PENDING").description("검수 대기중").build()) // 상태 Enum 사용
                 .isModerated(false)
                 .build();
 
@@ -107,7 +107,7 @@ class ReportServiceTest {
                 .transactionFeed(transactionFeed2)
                 .reason("주제 관련 없음")
                 .reportType(ReportType.builder().reportTypeId(2L).type("주제 관련 없음").build())
-                .status(Status.builder().code("AI_ACCEPTED").description("AI 승인").build()) // 상태 Enum 사용
+                .status(Status.builder().statusId(26L).code("AI_ACCEPTED").description("AI 승인").build()) // 상태 Enum 사용
                 .isModerated(true)
                 .build();
 
@@ -278,9 +278,9 @@ class ReportServiceTest {
         // given
         ProcessReportDto request = new ProcessReportDto();
         ReflectionTestUtils.setField(request, "approved", false);
-        Status pending = Status.builder().code("PENDING").build();
-        Status aiRejected = Status.builder().code("AI_REJECTED").build();
-        Status adminRejected = Status.builder().code("ADMIN_REJECTED").build();
+        Status pending = Status.builder().statusId(25L).code("PENDING").build();
+        Status aiRejected = Status.builder().statusId(27L).code("AI_REJECTED").build();
+        Status adminRejected = Status.builder().statusId(29L).code("ADMIN_REJECTED").build();
 
         report1.updateStatus(pending);
 
@@ -304,10 +304,10 @@ class ReportServiceTest {
         ProcessReportDto request = new ProcessReportDto();
         ReflectionTestUtils.setField(request, "approved", true);
 
-        Status pending = Status.builder().code("PENDING").build();
-        Status aiRejected = Status.builder().code("AI_REJECTED").build();
-        Status adminAccepted = Status.builder().code("ADMIN_ACCEPTED").build();
-        Status aiAccepted = Status.builder().code("AI_ACCEPTED").build();
+        Status pending = Status.builder().statusId(25L).code("PENDING").build();
+        Status aiRejected = Status.builder().statusId(27L).code("AI_REJECTED").build();
+        Status adminAccepted = Status.builder().statusId(28L).code("ADMIN_ACCEPTED").build();
+        Status aiAccepted = Status.builder().statusId(26L).code("AI_ACCEPTED").build();
 
         report1.updateStatus(pending);
 
@@ -334,8 +334,8 @@ class ReportServiceTest {
         ReflectionTestUtils.setField(request, "approved", true);
 
         // 변경점: findByCode -> findByDomainAndCode
-        when(statusManager.getStatus("REPORT","PENDING")).thenReturn(Status.builder().code("PENDING").build());
-        when(statusManager.getStatus("REPORT","AI_REJECTED")).thenReturn(Status.builder().code("AI_REJECTED").build());
+        when(statusManager.getStatus("REPORT","PENDING")).thenReturn(Status.builder().statusId(25L).code("PENDING").build());
+        when(statusManager.getStatus("REPORT","AI_REJECTED")).thenReturn(Status.builder().statusId(27L).code("AI_REJECTED").build());
         when(reportHistoryRepository.findById(2L)).thenReturn(Optional.of(report2));
 
         // then
@@ -344,7 +344,6 @@ class ReportServiceTest {
         );
         verify(reportHistoryRepository).findById(2L);
     }
-
 
     @Test
     @DisplayName("제재 대상 선정")
@@ -472,8 +471,6 @@ class ReportServiceTest {
         Status completedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
         when(statusManager.getStatus("USER", "BANNED")).thenReturn(bannedStatus);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
-                .thenReturn(Optional.of(completedStatus));
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
 
         // when
@@ -510,8 +507,6 @@ class ReportServiceTest {
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
         when(userAuthorityRepository.findByUserAndAuthority(user1, authority)).thenReturn(null);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
-                .thenReturn(Optional.of(completedStatus));
 
         // when
         reportService.acceptRestrictions(1L);
@@ -553,8 +548,6 @@ class ReportServiceTest {
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
         when(userAuthorityRepository.findByUserAndAuthority(user1, authority)).thenReturn(userAuthority);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
-                .thenReturn(Optional.of(completedStatus));
         // when
         reportService.acceptRestrictions(1L);
 
@@ -568,16 +561,19 @@ class ReportServiceTest {
     void acceptRestrictions_Fail_AlreadyProcessedRestriction() {
         // given
         Status acceptedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
-
+        RestrictionType dummyRestrictionType = RestrictionType.builder()
+                .duration(7)
+                .build();
         RestrictionTarget restrictionTarget = RestrictionTarget.builder()
                 .user(user1)
                 .status(acceptedStatus)
+                .restrictionType(dummyRestrictionType)
                 .build();
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
 
+
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "COMPLETED"))
-                .thenReturn(Optional.of(acceptedStatus));
+        when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(acceptedStatus);
 
         // when & then
         assertThrows(AlreadyProcessedRestrictionException.class,
@@ -598,8 +594,6 @@ class ReportServiceTest {
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
 
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "REJECTED"))
-                .thenReturn(Optional.of(rejectedStatus));
         when(statusManager.getStatus("RESTRICTION", "REJECTED"))
                 .thenReturn(rejectedStatus);
         // when
@@ -622,8 +616,8 @@ class ReportServiceTest {
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
 
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
-        when(statusRepository.findByDomainAndCode("RESTRICTION", "REJECTED"))
-                .thenReturn(Optional.of(rejectedStatus));
+        when(statusManager.getStatus("RESTRICTION", "REJECTED"))
+                .thenReturn(rejectedStatus);
 
         // when & then
         assertThrows(AlreadyProcessedRestrictionException.class,
