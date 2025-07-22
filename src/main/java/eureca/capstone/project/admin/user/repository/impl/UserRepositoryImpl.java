@@ -6,6 +6,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import eureca.capstone.project.admin.user.dto.UserInformationDto;
+import eureca.capstone.project.admin.user.dto.response.MyReportResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserReportResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserResponseDto;
 import eureca.capstone.project.admin.user.repository.custom.UserRepositoryCustom;
@@ -154,5 +155,25 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         // email LIKE '%keyword%' OR nickname LIKE '%keyword%' (대소문자 무시)
         return user.email.containsIgnoreCase(keyword)
                 .or(user.nickname.containsIgnoreCase(keyword));
+    }
+
+    @Override
+    public List<MyReportResponseDto> findMyReportList(Long userId) {
+        return jpaQueryFactory
+                .select(Projections.constructor(MyReportResponseDto.class,
+                        transactionFeed.transactionFeedId,
+                        transactionFeed.title,
+                        transactionFeed.salesDataAmount,
+                        reportHistory.reportType.explanation,
+                        reportHistory.createdAt,
+                        reportHistory.status.description,
+                        reportHistory.reason
+                ))
+                .from(reportHistory)
+                .innerJoin(reportHistory.user, user)
+                .innerJoin(reportHistory.transactionFeed, transactionFeed)
+                .where(user.userId.eq(userId))
+                .orderBy(reportHistory.createdAt.desc())
+                .fetch();
     }
 }

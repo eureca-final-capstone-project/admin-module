@@ -44,6 +44,7 @@ public class SecurityConfig {
                         .requestMatchers(FilterConstant.whiteList).permitAll()
                         .requestMatchers(FilterConstant.REFRESH_PATH).permitAll()
                         .requestMatchers(HttpMethod.POST, "/admin/reports").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/mypage/reports").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers(FilterConstant.blackList).authenticated()
                         .anyRequest().permitAll()

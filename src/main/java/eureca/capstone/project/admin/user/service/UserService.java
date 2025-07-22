@@ -1,6 +1,7 @@
 package eureca.capstone.project.admin.user.service;
 
 import eureca.capstone.project.admin.user.dto.request.UpdateUserRequestDto;
+import eureca.capstone.project.admin.user.dto.response.MyReportResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UpdateUserResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserPageResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserReportResponseDto;
@@ -12,4 +13,5 @@ public interface UserService {
     UserPageResponseDto getUserList(String keyword, Pageable pageable);
     UpdateUserResponseDto updateUserStatus(Long userId, UpdateUserRequestDto request);
     List<UserReportResponseDto> getUserReport(Long userId);
+    List<MyReportResponseDto> getMyReportList(Long userId);
 }

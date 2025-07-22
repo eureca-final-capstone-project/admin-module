@@ -5,10 +5,7 @@ import eureca.capstone.project.admin.common.exception.custom.UserNotFoundExcepti
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.report.entity.RestrictionTarget;
 import eureca.capstone.project.admin.user.dto.request.UpdateUserRequestDto;
-import eureca.capstone.project.admin.user.dto.response.UpdateUserResponseDto;
-import eureca.capstone.project.admin.user.dto.response.UserPageResponseDto;
-import eureca.capstone.project.admin.user.dto.response.UserReportResponseDto;
-import eureca.capstone.project.admin.user.dto.response.UserResponseDto;
+import eureca.capstone.project.admin.user.dto.response.*;
 import eureca.capstone.project.admin.user.entity.User;
 import eureca.capstone.project.admin.user.repository.UserRepository;
 import eureca.capstone.project.admin.user.service.UserService;
@@ -78,5 +75,9 @@ public class UserServiceImpl implements UserService {
         return response;
     }
 
-
+    @Override
+    public List<MyReportResponseDto> getMyReportList(Long userId) {
+        List<MyReportResponseDto> response = userRepository.findMyReportList(userId);
+        return response;
+    }
 }
