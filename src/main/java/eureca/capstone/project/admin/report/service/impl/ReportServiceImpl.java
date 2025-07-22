@@ -4,7 +4,6 @@ import eureca.capstone.project.admin.auth.entity.Authority;
 import eureca.capstone.project.admin.auth.entity.UserAuthority;
 import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
 import eureca.capstone.project.admin.common.exception.custom.*;
-import eureca.capstone.project.admin.common.repository.StatusRepository;
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.admin.user.repository.UserRepository;

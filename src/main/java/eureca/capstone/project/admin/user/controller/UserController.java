@@ -1,7 +1,9 @@
 package eureca.capstone.project.admin.user.controller;
 
+import eureca.capstone.project.admin.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.admin.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.admin.user.dto.request.UpdateUserRequestDto;
+import eureca.capstone.project.admin.user.dto.response.MyReportResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UpdateUserResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserPageResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserReportResponseDto;
@@ -10,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -47,4 +50,5 @@ public class UserController {
         List<UserReportResponseDto> userReportResponseDto = userService.getUserReport(userId);
         return BaseResponseDto.success(userReportResponseDto);
     }
+
 }

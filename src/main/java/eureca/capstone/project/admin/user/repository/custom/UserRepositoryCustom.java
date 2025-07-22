@@ -1,6 +1,7 @@
 package eureca.capstone.project.admin.user.repository.custom;
 
 import eureca.capstone.project.admin.user.dto.UserInformationDto;
+import eureca.capstone.project.admin.user.dto.response.MyReportResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserReportResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserResponseDto;
 import org.springframework.data.domain.Page;
@@ -12,4 +13,5 @@ public interface UserRepositoryCustom {
     Page<UserResponseDto> getUserList(String keyword, Pageable pageable);
     List<UserReportResponseDto> getUserReportList(Long userId);
     UserInformationDto findAdminInformation(String email);
+    List<MyReportResponseDto> findMyReportList(Long userId);
 }
