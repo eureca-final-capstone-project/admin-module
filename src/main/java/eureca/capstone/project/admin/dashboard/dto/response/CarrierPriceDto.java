@@ -7,5 +7,5 @@ import lombok.Getter;
 @Builder
 public class CarrierPriceDto {
     private String carrierName; // "SKT", "KT", "LGU+"
-    private double pricePerGb; // 1GB당 평균 시세
+    private Long pricePerGb; // 1GB당 평균 시세
 }
