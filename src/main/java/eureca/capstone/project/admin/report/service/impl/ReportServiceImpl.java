@@ -211,7 +211,7 @@ public class ReportServiceImpl implements ReportService {
         RestrictionType restrictionType = restrictionTypeRepository.findById(restrictionTypeId)
                 .orElseThrow(RestrictionTypeNotFoundException::new);
 
-        log.info("[checkAndApplyRestriction] 글 신고 수 기준 충족: 대상유저={}, reportType={}, restrictionType={}", user, reportType.getType(), restrictionType.getContent());
+        log.info("[applyRestriction] 글 신고 수 기준 충족: 대상유저={}, reportType={}, restrictionType={}", user, reportType.getType(), restrictionType.getContent());
 
         Status status = statusManager.getStatus(RESTRICTION, "PENDING");
         RestrictionTarget restriction = RestrictionTarget.builder()
