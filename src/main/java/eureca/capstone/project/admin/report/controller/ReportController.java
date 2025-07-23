@@ -3,7 +3,6 @@ package eureca.capstone.project.admin.report.controller;
 import eureca.capstone.project.admin.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.admin.report.dto.request.CreateReportRequestDto;
 import eureca.capstone.project.admin.report.dto.request.ProcessReportDto;
-import eureca.capstone.project.admin.report.dto.request.UpdateRestrictionStatusRequestDto;
 import eureca.capstone.project.admin.report.dto.response.*;
 import eureca.capstone.project.admin.common.dto.base.BaseResponseDto;
 import eureca.capstone.project.admin.report.service.ReportService;
