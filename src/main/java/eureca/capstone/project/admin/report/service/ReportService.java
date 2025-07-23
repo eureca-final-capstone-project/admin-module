@@ -15,8 +15,6 @@ public interface ReportService {
     Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode,String keyword, Pageable pageable);
     void processReportByAdmin(Long reportHistoryId, ProcessReportDto request);
     void createReportAndProcessWithAI(Long userId, Long transactionFeedId, Long reportTypeId, String reason);
-    RestrictExpiredResponseDto getRestrictExpiredList();
-    void expireRestrictions(List<Long> restrictionTargetIds);
     void acceptRestrictions(Long restrictionTargetId);
     void rejectRestrictions(Long restrictionTargetId);
     ReportDetailResponseDto getReportDetail(Long reportId);

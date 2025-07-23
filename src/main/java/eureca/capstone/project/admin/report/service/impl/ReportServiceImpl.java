@@ -246,19 +246,6 @@ public class ReportServiceImpl implements ReportService {
 
     @Transactional
     @Override
-    public void expireRestrictions(List<Long> restrictionTargetIds) {
-        if (restrictionTargetIds == null || restrictionTargetIds.isEmpty()) {
-            log.info("[expireRestrictions] 제재만료 대상 없음");
-            return;
-        }
-        Status expiredStatus = statusManager.getStatus(RESTRICTION, "RESTRICT_EXPIRATION");
-        restrictionTargetRepository.updateStatusForIds(restrictionTargetIds, expiredStatus);
-
-        log.info("[expireRestrictions] 제재만료처리 완료");
-    }
-
-    @Transactional
-    @Override
     public void acceptRestrictions(Long restrictionTargetId) {
         RestrictionTarget restrictionTarget = restrictionTargetRepository.findById(restrictionTargetId)
                 .orElseThrow(RestrictionTargetNotFoundException::new);
@@ -373,22 +360,5 @@ public class ReportServiceImpl implements ReportService {
         log.info("[getRestrictionReportHistory] 제재와 연관된 신고내역 조회: 총 {} 건", response.size());
 
         return response;
-    }
-
-    @Override
-    public RestrictExpiredResponseDto getRestrictExpiredList() {
-        Status completedStatus = statusManager.getStatus(RESTRICTION, "COMPLETED");
-
-        List<RestrictionTarget> expiredTargets = restrictionTargetRepository.findExpiredRestrictions(
-                LocalDateTime.now(),
-                completedStatus
-        );
-
-        List<RestrictExpiredResponseDto.ExpiredRestrictionInfo> expiredInfoList = expiredTargets.stream()
-                .map(RestrictExpiredResponseDto.ExpiredRestrictionInfo::from)
-                .toList();
-
-        log.info("[getRestrictExpiredList] 제재 만료 대상: {}건", expiredInfoList.size());
-        return new RestrictExpiredResponseDto(expiredInfoList);
     }
 }

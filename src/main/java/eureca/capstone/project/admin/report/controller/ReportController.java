@@ -86,19 +86,6 @@ public class ReportController {
         return BaseResponseDto.success(null);
     }
 
-    @Operation(summary = "만료된 제재 목록 조회", description = "배치 서버가 제재를 해제하기 위해 제재 기간이 만료된 사용자 목록을 조회합니다.")
-    @GetMapping("/restrict-expired-list")
-    public BaseResponseDto<RestrictExpiredResponseDto> restrictExpiredList() {
-        return BaseResponseDto.success(reportService.getRestrictExpiredList());
-    }
-
-    @Operation(summary = "제재 상태 일괄 만료 처리", description = "배치 서버가 제재 해제 처리 후, 제재 기록의 상태를 EXPIRED로 변경합니다.")
-    @PostMapping("/restrict-expired")
-    public BaseResponseDto<Void> expireRestrictions(@RequestBody UpdateRestrictionStatusRequestDto request) {
-        reportService.expireRestrictions(request.getRestrictionTargetIds());
-        return BaseResponseDto.success(null);
-    }
-
     @Operation(summary = "제재 승인", description = "관리자 제재 승인 api 입니다.")
     @PatchMapping("/restrict/{id}/accept")
     public BaseResponseDto<Void> acceptRestriction(@PathVariable("id") Long restrictionTargetId) {

@@ -396,68 +396,6 @@ class ReportServiceTest {
         verify(restrictionTargetRepository).save(any(RestrictionTarget.class));
     }
 
-    @Test
-    @DisplayName("제재 만료 대상 상태변경_빈 리스트")
-    void expireRestrictions_emptyList() {
-        // when
-        reportService.expireRestrictions(new ArrayList<>());
-
-        // then
-        verifyNoInteractions(restrictionTargetRepository);
-    }
-
-    @Test
-    @DisplayName("제재 만료 대상 상태변경_null")
-    void expireRestrictions_null() {
-        // when
-        reportService.expireRestrictions(null);
-
-        // then
-        verifyNoInteractions(restrictionTargetRepository);
-    }
-
-    @Test
-    @DisplayName("제재 만료 대상 상태변경_성공")
-    void expireRestrictions_Success() {
-        // given
-        List<Long> ids = List.of(1L, 2L, 3L);
-        Status restrictExpire = Status.builder().code("RESTRICT_EXPIRATION").build();
-        when(statusManager.getStatus("RESTRICTION", "RESTRICT_EXPIRATION")).thenReturn(restrictExpire);
-
-        // when
-        reportService.expireRestrictions(ids);
-
-        // then
-        verify(restrictionTargetRepository).updateStatusForIds(
-                eq(ids),
-                eq(restrictExpire)
-        );
-    }
-
-    @Test
-    @DisplayName("제재 만료 대상 조회_성공")
-    void getRestrictExpiredList_Success() {
-        // given
-        RestrictionTarget expired1 = RestrictionTarget.builder().user(user1).reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build()).restrictionType(RestrictionType.builder().content("게시글 작성 제한(7일)").duration(7).build()).status(Status.builder().code("COMPLETED").build()).expiresAt(LocalDateTime.now().minusDays(1)).build();
-        RestrictionTarget expired2 = RestrictionTarget.builder().user(user2).reportType(ReportType.builder().reportTypeId(1L).type("욕설 및 비속어 포함").build()).restrictionType(RestrictionType.builder().content("게시글 작성 제한(7일)").duration(7).build()).status(Status.builder().code("COMPLETED").build()).expiresAt(LocalDateTime.now()).build();
-
-        Status completed = Status.builder().code("COMPLETED").build();
-        // 변경점: findByCode -> findByDomainAndCode
-        when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completed);
-        when(restrictionTargetRepository.findExpiredRestrictions(any(LocalDateTime.class), eq(completed)))
-                .thenReturn(List.of(expired1, expired2));
-
-        // when
-        RestrictExpiredResponseDto result = reportService.getRestrictExpiredList();
-
-        // then
-        assertNotNull(result);
-        assertEquals(2, result.getExpiredRestrictions().size());
-        verify(restrictionTargetRepository).findExpiredRestrictions(any(LocalDateTime.class), eq(completed));
-        verifyNoMoreInteractions(restrictionTargetRepository);
-    }
-
-
     @DisplayName("제재 승인_영구정지일 경우 사용자 상태만 변경")
     @Test
     void acceptRestrictions_Restriction_Success() {
