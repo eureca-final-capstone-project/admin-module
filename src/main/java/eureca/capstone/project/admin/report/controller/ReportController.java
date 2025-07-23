@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "신고/제재 API", description = "사용자 신고 접수 및 관리자 기능 API")
+@Tag(name = "신고 API", description = "사용자 신고 접수 및 신고 관련 관리자 기능 API")
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor
@@ -49,21 +49,6 @@ public class ReportController {
         return BaseResponseDto.success(reportService.getReportDetail(reportId));
     }
 
-    @Operation(summary = "제재 내역 목록 조회", description = "제재 대상 내역을 페이징하여 조회합니다. status 파라미터로 필터링할 수 있습니다.")
-    @GetMapping("/restrictions")
-    public BaseResponseDto<Page<RestrictionDto>> getRestrictionList(
-            @Parameter(description = "필터링할 제재 상태 (PENDING, COMPLETED, REJECTED)") @RequestParam(required = false) String statusCode,
-            @Parameter(description = "검색어 (신고자 이메일)") @RequestParam(required = false) String keyword,
-            Pageable pageable) {
-        return BaseResponseDto.success(reportService.getRestrictionListByStatusCode(statusCode,keyword, pageable));
-    }
-
-    @Operation(summary = "제재 ID로 신고 내역 조회", description = "제재 ID를 통해 연관된 신고 내역을 조회합니다.")
-    @GetMapping("restricts/{restrictId}/report-list")
-    public BaseResponseDto<List<RestrictionReportResponseDto>> getRestrictionReportHistory(@PathVariable("restrictId") Long restrictId) {
-        return BaseResponseDto.success(reportService.getRestrictionReportHistory(restrictId));
-    }
-
     @Operation(summary = "게시글 신고 접수", description = "사용자가 게시글을 신고하면 AI가 1차 검토 후 접수합니다.")
     @PostMapping("/reports")
     public BaseResponseDto<Void> createReport(@RequestBody CreateReportRequestDto request,
@@ -83,20 +68,6 @@ public class ReportController {
             @Parameter(description = "처리할 신고 ID") @PathVariable("reportHistoryId") Long reportHistoryId,
             @RequestBody ProcessReportDto request) {
         reportService.processReportByAdmin(reportHistoryId, request);
-        return BaseResponseDto.success(null);
-    }
-
-    @Operation(summary = "제재 승인", description = "관리자 제재 승인 api 입니다.")
-    @PatchMapping("/restrict/{id}/accept")
-    public BaseResponseDto<Void> acceptRestriction(@PathVariable("id") Long restrictionTargetId) {
-        reportService.acceptRestrictions(restrictionTargetId);
-        return BaseResponseDto.success(null);
-    }
-
-    @Operation(summary = "제재 미승인", description = "관리자 제재 미승인(거절) api 입니다.")
-    @PatchMapping("/restrict/{id}/reject")
-    public BaseResponseDto<Void> rejectRestriction(@PathVariable("id") Long restrictionTargetId) {
-        reportService.rejectRestrictions(restrictionTargetId);
         return BaseResponseDto.success(null);
     }
 }

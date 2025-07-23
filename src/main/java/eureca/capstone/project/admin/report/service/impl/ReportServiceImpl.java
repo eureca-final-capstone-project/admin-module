@@ -31,6 +31,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static eureca.capstone.project.admin.common.constant.ReportConst.*;
+import static eureca.capstone.project.admin.common.constant.RestrictionConst.*;
 import static eureca.capstone.project.admin.common.entity.StatusConst.*;
 
 
@@ -48,7 +50,6 @@ public class ReportServiceImpl implements ReportService {
     private final TransactionFeedRepository transactionFeedRepository;
     private final AIReviewService aiReviewService;
     private final StatusManager statusManager;
-    private final UserAuthorityRepository userAuthorityRepository;
 
     @Override
     public ReportCountDto getReportCounts() {
@@ -71,14 +72,6 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode,String keyword, Pageable pageable) {
-        Page<RestrictionTarget> restrictionTarget = restrictionTargetRepository.findByCriteria(statusCode, keyword, pageable);
-        log.info("[getRestrictionListByStatusCode] 신고 내역 조회 (keyword: {}, statusCode: {}): 총 {} 건", keyword, statusCode, restrictionTarget.getTotalElements());
-        return restrictionTarget.map(RestrictionDto::from);
-    }
-
-
-    @Override
     @Transactional
     public void processReportByAdmin(Long reportHistoryId, ProcessReportDto request) {
         ReportHistory reportHistory = reportHistoryRepository.findById(reportHistoryId)
@@ -87,11 +80,13 @@ public class ReportServiceImpl implements ReportService {
         Long pendingStatusId = statusManager.getStatus(REPORT,"PENDING").getStatusId();
         Long aiRejectStatusId = statusManager.getStatus(REPORT,"AI_REJECTED").getStatusId();
 
+        // 이미 처리된 신고
         List<Long> processableStatus = List.of(pendingStatusId, aiRejectStatusId);
         if (!processableStatus.contains(reportHistory.getStatus().getStatusId())) {
             throw new AlreadyProcessedReportException();
         }
 
+        // 신고 거절
         if (!request.getApproved()) {
             Status adminRejectedStatus = statusManager.getStatus(REPORT, "ADMIN_REJECTED");
             reportHistory.updateStatus(adminRejectedStatus);
@@ -100,6 +95,7 @@ public class ReportServiceImpl implements ReportService {
             return;
         }
 
+        // 신고 승인
         Status adminAcceptedStatus = statusManager.getStatus(REPORT, "ADMIN_ACCEPTED");
         reportHistory.updateStatus(adminAcceptedStatus);
 
@@ -177,6 +173,7 @@ public class ReportServiceImpl implements ReportService {
     private void checkAndApplyRestriction(User seller, ReportType reportType) {
         Status aiAcceptStatus = statusManager.getStatus(REPORT, "AI_ACCEPTED");
         Status adminAcceptStatus = statusManager.getStatus(REPORT, "ADMIN_ACCEPTED");
+
         List<Status> acceptedStatuses = List.of(aiAcceptStatus, adminAcceptStatus);
 
         long violationCount = reportHistoryRepository
@@ -186,43 +183,36 @@ public class ReportServiceImpl implements ReportService {
         log.info("[checkAndApplyRestriction] 피신고 수={}", violationCount);
 
         switch (reportType.getReportTypeId().intValue()) {
-            case 1 -> { // 욕설 및 비속어
-                if (violationCount >= 5) {
-                    restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    log.info("[checkAndApplyRestriction] 욕설 및 비속어 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
+            case BAD_WORD -> { // 욕설 및 비속어
+                if (violationCount >= BAD_WORD_CNT) {
+                    applyRestriction(seller, reportType, RES_WRITE_7DAYS, acceptedStatuses);
                 }
             }
-            case 2 -> {  // 주제 불일치
-                if (violationCount >= 5) {
-                    restrictionType = restrictionTypeRepository.findById(4L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    log.info("[checkAndApplyRestriction] 주제 불일치 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
+            case TOPIC_MISMATCH -> {  // 주제 불일치
+                if (violationCount >= TOPIC_MISMATCH_CNT) {
+                    applyRestriction(seller, reportType, RES_WRITE_1DAYS, acceptedStatuses);
                 }
             }
-            case 3 -> { // 음란 내용 포함
-                restrictionType = restrictionTypeRepository.findById(2L).orElseThrow(RestrictionTypeNotFoundException::new);
-                log.info("[checkAndApplyRestriction] 음란 내용 포함 글 신고: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
-            }
-            case 4 -> { // 외부 채널 유도
-                if (violationCount >= 3) {
-                    restrictionType = restrictionTypeRepository.findById(3L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    log.info("[checkAndApplyRestriction] 외부 채널 유도 신고 수 3회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
+            case OBSCENE -> applyRestriction(seller, reportType, RES_FOREVER, acceptedStatuses); // 음란 내용 포함
+            case EXTERNAL_CHANNEL -> { // 외부 채널 유도
+                if (violationCount >= EXTERNAL_CHANNEL_CNT) {
+                    applyRestriction(seller, reportType, RES_TRANSACTION, acceptedStatuses);
                 }
             }
-            case 5 -> { // 비방/저격 포함
-                if (violationCount >= 5) {
-                    restrictionType = restrictionTypeRepository.findById(1L).orElseThrow(RestrictionTypeNotFoundException::new);
-                    log.info("[checkAndApplyRestriction] 비방/저격 글 신고 수 5회 이상: 대상유저={}, restrictionType={}", seller, restrictionType.getContent());
-                    applyRestriction(seller, reportType, restrictionType, acceptedStatuses);
+            case SNIPING -> { // 비방/저격 포함
+                if (violationCount >= SNIPING_CNT) {
+                    applyRestriction(seller, reportType, RES_WRITE_7DAYS, acceptedStatuses);
                 }
             }
         }
     }
 
-    private void applyRestriction(User user, ReportType reportType, RestrictionType restrictionType, List<Status> acceptedStatuses) {
+    private void applyRestriction(User user, ReportType reportType, Long restrictionTypeId, List<Status> acceptedStatuses) {
+        RestrictionType restrictionType = restrictionTypeRepository.findById(restrictionTypeId)
+                .orElseThrow(RestrictionTypeNotFoundException::new);
+
+        log.info("[checkAndApplyRestriction] 글 신고 수 기준 충족: 대상유저={}, reportType={}, restrictionType={}", user, reportType.getType(), restrictionType.getContent());
+
         Status status = statusManager.getStatus(RESTRICTION, "PENDING");
         RestrictionTarget restriction = RestrictionTarget.builder()
                 .user(user)
@@ -244,98 +234,6 @@ public class ReportServiceImpl implements ReportService {
         log.info("[applyRestriction] 연관 신고내역에 제재 id 등록완료. restrictionTargetId: {}", restriction.getRestrictionTargetId());
     }
 
-    @Transactional
-    @Override
-    public void acceptRestrictions(Long restrictionTargetId) {
-        RestrictionTarget restrictionTarget = restrictionTargetRepository.findById(restrictionTargetId)
-                .orElseThrow(RestrictionTargetNotFoundException::new);
-
-        Status completedStatus = statusManager.getStatus(RESTRICTION, "COMPLETED");
-
-        if(restrictionTarget.getStatus().equals(completedStatus)) {
-            throw new AlreadyProcessedRestrictionException();
-        }
-
-        User user = restrictionTarget.getUser();
-        Integer duration = restrictionTarget.getRestrictionType().getDuration();
-
-        log.info("[acceptRestrictions] 제재대상 및 기간 조회. 사용자: {}, 제재타입: {}, 제재기간: {} (-1은 영구정지)", user.getUserId(), restrictionTarget.getRestrictionType().getContent(), duration);
-
-        // 제재 만료일
-        LocalDateTime expiresAt;
-
-        if (duration == -1) { // 영구정지일 경우 사용자 block
-            expiresAt = null;
-            user.updateUserStatus(statusManager.getStatus("USER", "BANNED"));
-            log.info("[acceptRestrictions] 영구정지 user 상태 변경: {}", user.getStatus().getCode());
-        }
-        else{
-            Authority authority = restrictionTarget.getRestrictionType().getAuthority();
-            UserAuthority userAuthority = userAuthorityRepository.findByUserAndAuthority(user, authority);
-            log.info("[acceptRestrictions] userAuthority에서 권한 조회결과: {}", userAuthority);
-
-            // 해당 권한에 대한 제재내역이 없는 경우
-            if(userAuthority == null){
-                expiresAt = LocalDateTime.now().plusDays(duration);
-                userAuthorityRepository.save(
-                        UserAuthority.builder()
-                            .user(user)
-                            .authority(authority)
-                            .expiredAt(expiresAt)
-                            .build());
-                log.info("[acceptRestrictions] 해당 권한에 대한 제재내역 없음 => expiresAt: {} ", expiresAt);
-            }
-            // 해당 권한에 대해 이미 제재받은 경우
-            else{
-                expiresAt = userAuthority.getExpiredAt().plusDays(duration);
-                userAuthority.updateExpiresAt(expiresAt);
-                log.info("[acceptRestrictions] 해당 권한에 대한 제재내역 있음 => expiresAt: {} ", expiresAt);
-            }
-        }
-        restrictionTarget.updateExpiresAt(expiresAt);
-        restrictionTarget.updateStatus(statusManager.getStatus("RESTRICTION", "COMPLETED"));
-        log.info("[acceptRestrictions] 제재 완료. expiresAt: {}, status: {}", expiresAt, restrictionTarget.getStatus().getCode());
-
-        //제재와 연관된 신고 내역들의 상태를 '제재 완료'로 변경
-        Status reportCompletedStatus = statusManager.getStatus("REPORT", "COMPLETED");
-        List<ReportHistory> relatedReports = reportHistoryRepository.findByRestrictionTarget(restrictionTarget);
-        relatedReports.forEach(report -> report.updateStatus(reportCompletedStatus));
-        reportHistoryRepository.saveAll(relatedReports);
-        log.info("[acceptRestrictions] 연관된 신고 내역 {}건의 상태를 '제재 완료'로 변경했습니다.", relatedReports.size());
-
-        // 제재와 연관된 게시글의 상태를 BLURRED로 변경
-        Status blurredStatus = statusManager.getStatus(FEED, "BLURRED");
-        List<TransactionFeed> transactionFeedsToBlur = relatedReports.stream()
-                .map(ReportHistory::getTransactionFeed)
-                .distinct() // 중복 게시글 제거
-                .toList();
-        transactionFeedsToBlur.forEach(feed -> feed.updateStatus(blurredStatus));
-        transactionFeedRepository.saveAll(transactionFeedsToBlur);
-        log.info("[acceptRestrictions] 연관된 게시글 {}건의 상태를 'BLURRED'로 변경했습니다.", transactionFeedsToBlur.size());
-    }
-
-    @Transactional
-    @Override
-    public void rejectRestrictions(Long restrictionTargetId) {
-        RestrictionTarget restrictionTarget = restrictionTargetRepository.findById(restrictionTargetId)
-                .orElseThrow(RestrictionTargetNotFoundException::new);
-
-        Status rejectedStatus = statusManager.getStatus(RESTRICTION, "REJECTED");
-
-        if(restrictionTarget.getStatus().equals(rejectedStatus)) {
-            throw new AlreadyProcessedRestrictionException();
-        }
-
-        restrictionTarget.updateStatus(statusManager.getStatus("RESTRICTION", "REJECTED"));
-        log.info("[acceptRestrictions] 제재 거절 완료. status: {}", restrictionTarget.getStatus().getCode());
-
-        Status reportRejectedStatus = statusManager.getStatus("REPORT", "REJECTED");
-        List<ReportHistory> relatedReports = reportHistoryRepository.findByRestrictionTarget(restrictionTarget);
-        relatedReports.forEach(report -> report.updateStatus(reportRejectedStatus));
-        reportHistoryRepository.saveAll(relatedReports);
-        log.info("[rejectRestrictions] 연관된 신고 내역 {}건의 상태를 '제재 미승인'으로 변경했습니다.", relatedReports.size());
-    }
-
     @Override
     public ReportDetailResponseDto getReportDetail(Long reportId) {
 
@@ -349,16 +247,4 @@ public class ReportServiceImpl implements ReportService {
         return response;
     }
 
-    @Override
-    public List<RestrictionReportResponseDto> getRestrictionReportHistory(Long restrictionId) {
-
-        RestrictionTarget restriction = restrictionTargetRepository.findById(restrictionId)
-                .orElseThrow(RestrictionTargetNotFoundException::new);
-
-        List<RestrictionReportResponseDto> response = reportHistoryRepository.getRestrictionReportList(restrictionId);
-
-        log.info("[getRestrictionReportHistory] 제재와 연관된 신고내역 조회: 총 {} 건", response.size());
-
-        return response;
-    }
 }
