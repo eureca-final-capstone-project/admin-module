@@ -24,7 +24,7 @@ public class QMarketStatistic extends EntityPathBase<MarketStatistic> {
 
     public final eureca.capstone.project.admin.common.entity.QBaseEntity _super = new eureca.capstone.project.admin.common.entity.QBaseEntity(this);
 
-    public final NumberPath<Double> averagePrice = createNumber("averagePrice", Double.class);
+    public final NumberPath<Long> averagePrice = createNumber("averagePrice", Long.class);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdAt = _super.createdAt;
