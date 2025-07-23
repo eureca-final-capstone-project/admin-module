@@ -57,19 +57,10 @@ class ReportServiceTest {
     private RestrictionTargetRepository restrictionTargetRepository;
 
     @Mock
-    private UserAuthorityRepository userAuthorityRepository;
-
-    @Mock
     private RestrictionTypeRepository restrictionTypeRepository;
 
     @Mock
-    private TransactionFeedRepository transactionFeedRepository;
-
-    @Mock
     private StatusManager statusManager;
-
-    @Mock
-    private StatusRepository statusRepository;
 
     @InjectMocks
     private ReportServiceImpl reportService;

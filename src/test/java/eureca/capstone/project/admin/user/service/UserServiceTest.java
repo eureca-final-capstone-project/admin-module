@@ -47,23 +47,12 @@ public class UserServiceTest {
     private UserServiceImpl userService;
 
     private Pageable pageable;
-//    private User user1;
-//    private User user2;
     private UserResponseDto user1;
     private UserResponseDto user2;
-    private TelecomCompany telecomCompany;
-    private Status statusActive;
-    private Status statusBann;
 
     @BeforeEach
     void setUp() {
         pageable = PageRequest.of(0, 10);
-//        telecomCompany = TelecomCompany.builder().name("LG").build();
-//        statusActive = Status.builder().code("ACTIVE").build();
-//        statusBann = Status.builder().code("BANNED").build();
-//
-//        user1 = User.builder().userId(100L).email("user1@example.com").nickname("User1")
-//                .telecomCompany(telecomCompany).phoneNumber("010-1111-1111").createAt().build();
 
         user1 = new UserResponseDto(100L, "email1@email.com", "nick1", "LG", "010-1111-1111", LocalDateTime.now(), "ACTIVE", 0L);
         user2 = new UserResponseDto(101L, "email2@email.com", "nick2", "KT", "010-2222-2222", LocalDateTime.now(), "BANNED", 2L);
@@ -186,7 +175,7 @@ public class UserServiceTest {
         );
 
         when(userRepository.getUserReportList(userId)).thenReturn(reports);
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(userId)).thenReturn(true);
 
         // when
         List<UserReportResponseDto> result = userService.getUserReport(userId);

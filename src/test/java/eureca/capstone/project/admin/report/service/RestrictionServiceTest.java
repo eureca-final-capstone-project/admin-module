@@ -61,16 +61,10 @@ public class RestrictionServiceTest {
     private UserAuthorityRepository userAuthorityRepository;
 
     @Mock
-    private RestrictionTypeRepository restrictionTypeRepository;
-
-    @Mock
     private TransactionFeedRepository transactionFeedRepository;
 
     @Mock
     private StatusManager statusManager;
-
-    @Mock
-    private StatusRepository statusRepository;
 
     @InjectMocks
     private RestrictionServiceImpl restrictionService;
