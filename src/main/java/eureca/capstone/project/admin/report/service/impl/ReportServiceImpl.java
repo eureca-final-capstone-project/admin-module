@@ -315,6 +315,16 @@ public class ReportServiceImpl implements ReportService {
         relatedReports.forEach(report -> report.updateStatus(reportCompletedStatus));
         reportHistoryRepository.saveAll(relatedReports);
         log.info("[acceptRestrictions] 연관된 신고 내역 {}건의 상태를 '제재 완료'로 변경했습니다.", relatedReports.size());
+
+        // 제재와 연관된 게시글의 상태를 BLURRED로 변경
+        Status blurredStatus = statusManager.getStatus(FEED, "BLURRED");
+        List<TransactionFeed> transactionFeedsToBlur = relatedReports.stream()
+                .map(ReportHistory::getTransactionFeed)
+                .distinct() // 중복 게시글 제거
+                .toList();
+        transactionFeedsToBlur.forEach(feed -> feed.updateStatus(blurredStatus));
+        transactionFeedRepository.saveAll(transactionFeedsToBlur);
+        log.info("[acceptRestrictions] 연관된 게시글 {}건의 상태를 'BLURRED'로 변경했습니다.", transactionFeedsToBlur.size());
     }
 
     @Transactional

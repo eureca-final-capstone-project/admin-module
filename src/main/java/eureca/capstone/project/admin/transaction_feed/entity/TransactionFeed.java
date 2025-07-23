@@ -61,4 +61,8 @@ public class TransactionFeed extends BaseEntity {
 
     @Column(name = "is_deleted")
     private boolean isDeleted;
+
+    public void updateStatus(Status status) {
+        this.status = status;
+    }
 }

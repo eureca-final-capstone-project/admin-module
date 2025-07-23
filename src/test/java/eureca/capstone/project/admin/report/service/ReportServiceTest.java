@@ -14,6 +14,7 @@ import eureca.capstone.project.admin.report.entity.RestrictionTarget;
 import eureca.capstone.project.admin.report.entity.RestrictionType;
 import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.transaction_feed.entity.TransactionFeed;
+import eureca.capstone.project.admin.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.admin.user.entity.User;
 import eureca.capstone.project.admin.report.dto.request.ProcessReportDto;
 import eureca.capstone.project.admin.common.exception.custom.AlreadyProcessedReportException;
@@ -60,6 +61,9 @@ class ReportServiceTest {
 
     @Mock
     private RestrictionTypeRepository restrictionTypeRepository;
+
+    @Mock
+    private TransactionFeedRepository transactionFeedRepository;
 
     @Mock
     private StatusManager statusManager;
@@ -469,9 +473,15 @@ class ReportServiceTest {
 
         Status bannedStatus = Status.builder().domain("USER").code("BANNED").build();
         Status completedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
+        Status reportCompletedStatus = Status.builder().domain("REPORT").code("COMPLETED").build();
+        Status blurredStatus = Status.builder().domain("FEED").code("BLURRED").build();
+
         when(statusManager.getStatus("USER", "BANNED")).thenReturn(bannedStatus);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
+        when(statusManager.getStatus("REPORT", "COMPLETED")).thenReturn(reportCompletedStatus);
+        when(statusManager.getStatus("FEED", "BLURRED")).thenReturn(blurredStatus);
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
+        when(reportHistoryRepository.findByRestrictionTarget(restrictionTarget)).thenReturn(List.of(report1));
 
         // when
         reportService.acceptRestrictions(1L);
@@ -480,6 +490,9 @@ class ReportServiceTest {
         assertEquals(bannedStatus, restrictionTarget.getUser().getStatus());
         assertNull(restrictionTarget.getExpiresAt());
         assertEquals(completedStatus, restrictionTarget.getStatus());
+        assertEquals(reportCompletedStatus, report1.getStatus());
+        assertEquals(blurredStatus, report1.getTransactionFeed().getStatus());
+        verify(transactionFeedRepository).saveAll(anyList());
     }
 
     @DisplayName("제재 승인_userAuthority에 제재 권한 내역 없는 경우 신규 등록")
@@ -503,10 +516,15 @@ class ReportServiceTest {
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
 
         Status completedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
+        Status reportCompletedStatus = Status.builder().domain("REPORT").code("COMPLETED").build();
+        Status blurredStatus = Status.builder().domain("FEED").code("BLURRED").build();
 
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
         when(userAuthorityRepository.findByUserAndAuthority(user1, authority)).thenReturn(null);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
+        when(statusManager.getStatus("REPORT", "COMPLETED")).thenReturn(reportCompletedStatus);
+        when(statusManager.getStatus("FEED", "BLURRED")).thenReturn(blurredStatus);
+        when(reportHistoryRepository.findByRestrictionTarget(restrictionTarget)).thenReturn(List.of(report1));
 
         // when
         reportService.acceptRestrictions(1L);
@@ -515,6 +533,9 @@ class ReportServiceTest {
         verify(userAuthorityRepository).save(any(UserAuthority.class));
         assertNotNull(restrictionTarget.getExpiresAt());
         assertEquals(completedStatus, restrictionTarget.getStatus());
+        assertEquals(reportCompletedStatus, report1.getStatus());
+        assertEquals(blurredStatus, report1.getTransactionFeed().getStatus());
+        verify(transactionFeedRepository).saveAll(anyList());
     }
 
     @DisplayName("제재 승인_userAuthority에 제재 권한 내역 없는 경우 기존 권한 제재 연장")
@@ -544,16 +565,25 @@ class ReportServiceTest {
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
 
         Status completedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
+        Status reportCompletedStatus = Status.builder().domain("REPORT").code("COMPLETED").build();
+        Status blurredStatus = Status.builder().domain("FEED").code("BLURRED").build();
 
         when(restrictionTargetRepository.findById(1L)).thenReturn(Optional.of(restrictionTarget));
         when(userAuthorityRepository.findByUserAndAuthority(user1, authority)).thenReturn(userAuthority);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
+        when(statusManager.getStatus("REPORT", "COMPLETED")).thenReturn(reportCompletedStatus);
+        when(statusManager.getStatus("FEED", "BLURRED")).thenReturn(blurredStatus);
+        when(reportHistoryRepository.findByRestrictionTarget(restrictionTarget)).thenReturn(List.of(report1));
+
         // when
         reportService.acceptRestrictions(1L);
 
         // then
         assertTrue(userAuthority.getExpiredAt().isAfter(previousExpiry));
         assertEquals(completedStatus, restrictionTarget.getStatus());
+        assertEquals(reportCompletedStatus, report1.getStatus());
+        assertEquals(blurredStatus, report1.getTransactionFeed().getStatus());
+        verify(transactionFeedRepository).saveAll(anyList());
     }
 
     @DisplayName("제재 승인_실패(AlreadyProcessedRestriction)")
