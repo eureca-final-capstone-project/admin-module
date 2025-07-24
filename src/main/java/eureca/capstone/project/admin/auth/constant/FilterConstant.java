@@ -7,7 +7,8 @@ public final class FilterConstant {
             "/swagger-ui.html",
             "/error",
             "/favicon.ico",
-            "/v3/api-docs/**"
+            "/v3/api-docs/**",
+            "/admin/report-types"
     };
 
     public static final String[] blackList = {
