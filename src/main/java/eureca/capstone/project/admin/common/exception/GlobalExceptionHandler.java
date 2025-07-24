@@ -91,9 +91,4 @@ public class GlobalExceptionHandler {
         return BaseResponseDto.fail(ErrorCode.SALES_TYPE_NOT_FOUND);
     }
 
-    @ExceptionHandler(StatisticNotFoundException.class)
-    public BaseResponseDto<ErrorResponseDto> handleStatisticNotFoundException(StatisticNotFoundException e) {
-        log.error(e.getMessage(), e);
-        return BaseResponseDto.fail(ErrorCode.STATISTIC_NOT_FOUND);
-    }
 }

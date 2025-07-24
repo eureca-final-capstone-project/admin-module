@@ -39,7 +39,6 @@ public class DashboardController {
 
             ### ❌ 주요 실패 코드
             * 70013 (SALES_TYPE_NOT_FOUND): 판매 유형이 존재하지 않는 경우
-            * 70014 (STATISTIC_NOT_FOUND): 통계 데이터가 존재하지 않는 경우
             
             ### 📝 참고 사항
             * **salesType** 에 따라  
@@ -73,7 +72,6 @@ public class DashboardController {
 
             ### ❌ 주요 실패 코드
             * `70013` (SALES_TYPE_NOT_FOUND): 판매 유형이 존재하지 않는 경우
-            * `70014` (STATISTIC_NOT_FOUND): 통계 데이터가 존재하지 않는 경우
             
             ### 📝 참고 사항
             * **결과**: `TransactionVolumeStatDto` 형태로 반환  

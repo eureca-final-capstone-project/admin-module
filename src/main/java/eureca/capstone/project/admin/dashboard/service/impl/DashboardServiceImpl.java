@@ -3,7 +3,6 @@ package eureca.capstone.project.admin.dashboard.service.impl;
 
 import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.common.exception.custom.SalesTypeNotFoundException;
-import eureca.capstone.project.admin.common.exception.custom.StatisticNotFoundException;
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.dashboard.dto.response.*;
 import eureca.capstone.project.admin.dashboard.service.DashboardService;
@@ -62,9 +61,6 @@ public class DashboardServiceImpl implements DashboardService {
 
         // 시세 통계
         List<MarketStatistic> recentStats = marketStatisticsRepository.findAllByStaticsTimeRange(startTime, endTime);
-        if (recentStats.isEmpty()) {
-            throw new StatisticNotFoundException();
-        }
         List<HourlyPriceStatDto> priceStatsDtoList = buildPriceStats(startTime, endTime, recentStats);
         log.info("[getDashboardData] {} {}시 ~ {} {}시 시세통계 조회 {}건", startTime.toLocalDate(), startTime.getHour(), endTime.toLocalDate(), endTime.getHour()-1, priceStatsDtoList.size());
 
@@ -76,9 +72,6 @@ public class DashboardServiceImpl implements DashboardService {
 
         List<TransactionAmountStatistic> volumeStats =
                 transactionAmountStatisticRepository.findAllByStaticsTimeRange(salesTypeId, statType, startTime, endTime);
-        if(volumeStats.isEmpty()) {
-            throw new StatisticNotFoundException();
-        }
         log.info("[getDashboardData] 거래량 통계 조회 {}건. (시간: {} ~ {})", volumeStats.size(), startTime, endTime);
 
         List<VolumeStatDto> volumeStatsDtoList =
@@ -125,9 +118,6 @@ public class DashboardServiceImpl implements DashboardService {
                         startTime,
                         endTime
                 );
-        if(volumeStats.isEmpty()) {
-            throw new StatisticNotFoundException();
-        }
         log.info("[transactionVolumeStatData] 거래량 통계 조회 {}건. (시간: {} ~ {})", volumeStats.size(), startTime, endTime);
 
         List<VolumeStatDto> volumes = "HOUR".equals(statType)
