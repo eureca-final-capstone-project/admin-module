@@ -361,4 +361,12 @@ public class ReportServiceImpl implements ReportService {
 
         return response;
     }
+
+    @Override
+    public List<ReportTypeResponseDto> getReportTypes() {
+        List<ReportType> reportTypes = reportTypeRepository.findAll();
+        return reportTypes.stream()
+                .map(ReportTypeResponseDto::from)
+                .toList();
+    }
 }

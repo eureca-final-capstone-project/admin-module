@@ -19,4 +19,5 @@ public interface ReportService {
     void rejectRestrictions(Long restrictionTargetId);
     ReportDetailResponseDto getReportDetail(Long reportId);
     List<RestrictionReportResponseDto> getRestrictionReportHistory(Long restrictionId);
+    List<ReportTypeResponseDto> getReportTypes();
 }
