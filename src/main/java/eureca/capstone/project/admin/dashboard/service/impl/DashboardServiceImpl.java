@@ -72,7 +72,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         List<TransactionAmountStatistic> volumeStats =
                 transactionAmountStatisticRepository.findAllByStaticsTimeRange(salesTypeId, statType, startTime, endTime);
-        log.info("[getDashboardData] 거래량 통계 조회 {}건. (시간: {} ~ {})", startTime, endTime, priceStatsDtoList.size());
+        log.info("[getDashboardData] 거래량 통계 조회 {}건. (시간: {} ~ {})", volumeStats.size(), startTime, endTime);
 
         List<VolumeStatDto> volumeStatsDtoList =
                 "HOUR".equals(statType)
@@ -92,6 +92,46 @@ public class DashboardServiceImpl implements DashboardService {
                 .totalReportCount(totalReportCount)
                 .priceStats(priceStatsDtoList)
                 .volumeStats(volumeResponse)
+                .build();
+    }
+
+    @Override
+    public TransactionVolumeStatDto transactionVolumeStatData(String salesTypeName) {
+        // 1) SalesType 조회 및 statType 결정
+        SalesType salesType = salesTypeRepository.findByName(salesTypeName)
+                .orElseThrow(SalesTypeNotFoundException::new);
+        String statType = salesTypeName.equals("일반 판매") ? "HOUR" : "DAY";
+        log.info("[getVolumeStats] salesType={}, statType={}", salesTypeName, statType);
+
+        // 2) 기간 계산
+        LocalDateTime now     = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
+        LocalDateTime start   = now.minusHours(24);
+        LocalDateTime end     = now;
+        if ("DAY".equals(statType)) {
+            start = now.minusDays(7).with(LocalTime.MIN);
+            end   = now.with(LocalTime.MIN);
+        }
+
+        // 3) Repo 호출
+        List<TransactionAmountStatistic> stats =
+                transactionAmountStatisticRepository.findAllByStaticsTimeRange(
+                        salesType.getSalesTypeId(),
+                        statType,
+                        start,
+                        end
+                );
+        log.info("[getVolumeStats] stats fetched={}, period=[{}~{}]", stats.size(), start, end);
+
+        // 4) DTO 변환
+        List<VolumeStatDto> volumes = "HOUR".equals(statType)
+                ? buildHourlyVolumeDtos(start, end, stats)
+                : buildDailyVolumeDtos(start.toLocalDate(), end.toLocalDate().minusDays(1), stats);
+
+        // 5) 래핑 후 반환
+        return TransactionVolumeStatDto.builder()
+                .salesType(salesTypeName)
+                .statisticType(statType)
+                .volumes(volumes)
                 .build();
     }
 
