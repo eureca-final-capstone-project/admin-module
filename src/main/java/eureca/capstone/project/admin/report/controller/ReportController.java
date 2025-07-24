@@ -166,7 +166,7 @@ public class ReportController {
             ```
             
             ### 🔑 권한
-            * `ROLE_USER`, `ROLE_ADMIN` (사용자, 관리자 모두 가능)
+            * `ROLE_USER`(사용자 로그인 필요), `ROLE_ADMIN`
             
             ### ❌ 주요 실패 코드
             * `70007` (DUPLICATE_REPORT): 이미 신고한 게시글인 경우
