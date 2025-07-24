@@ -65,8 +65,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserReportResponseDto> getUserReport(Long userId) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(UserNotFoundException::new);
+        if(!userRepository.existsById(userId))
+            throw new UserNotFoundException();
 
         List<UserReportResponseDto> response = userRepository.getUserReportList(userId);
 
@@ -78,6 +78,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<MyReportResponseDto> getMyReportList(Long userId) {
         List<MyReportResponseDto> response = userRepository.findMyReportList(userId);
+        log.info("[getMyReportList] 사용자가 신고한 신고내역 조회: 총 {} 건", response.size());
         return response;
     }
 }

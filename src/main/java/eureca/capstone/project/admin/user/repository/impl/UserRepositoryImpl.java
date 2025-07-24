@@ -54,7 +54,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                         ))
                 .from(user)
                 .leftJoin(reportHistory).on(reportHistory.seller.eq(user)
-                                        .and(reportHistory.status.statusId.in(26, 28)))
+                                        .and(reportHistory.status.statusId.in(26, 28, 41)))
                 .where(searchCondition(keyword))
                 .groupBy(user.userId)
                 .orderBy(user.createdAt.desc())
@@ -86,7 +86,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .from(reportHistory)
                 .innerJoin(reportHistory.seller, user)
                 .innerJoin(transactionFeed).on(reportHistory.transactionFeed.eq(transactionFeed))
-                .where(reportHistory.status.statusId.in(26,28)
+                .where(reportHistory.status.statusId.in(26,28,41)
                         .and(user.userId.eq(userId)))
                 .fetch();
 
