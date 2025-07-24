@@ -19,7 +19,17 @@ public class MyPageController {
 
     private final UserService userService;
 
-    @Operation(summary = "내가 신고한 내역 조회", description = "로그인한 사용자가 다른 사용자를 신고한 내역 목록을 조회합니다.")
+    @Operation(summary = "내가 신고한 내역 조회", description = """
+    ## 로그인한 사용자가 다른 사용자를 신고한 내역 목록을 조회합니다.
+    
+    ***
+    
+    ### 📥 요청 파라미터
+    * 요청 파라미터가 없습니다. (로그인 토큰으로 사용자 식별)
+    
+    ### 🔑 권한
+    * `ROLE_USER`(사용자 로그인 필요), `ROLE_ADMIN`
+    """)
     @GetMapping("/reports")
     public BaseResponseDto<List<MyReportResponseDto>> getMyReports(@AuthenticationPrincipal CustomUserDetailsDto userDetailsDto) {
         Long currentUserId = userDetailsDto.getUserId();

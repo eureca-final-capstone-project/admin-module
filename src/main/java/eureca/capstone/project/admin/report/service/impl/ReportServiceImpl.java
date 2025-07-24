@@ -52,13 +52,13 @@ public class ReportServiceImpl implements ReportService {
     private final StatusManager statusManager;
 
     @Override
-    public ReportCountDto getReportCounts() {
+    public ReportCountResponseDto getReportCounts() {
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
         long todayCount = reportHistoryRepository.countByCreatedAtAfter(startOfToday);
         long totalCount = reportHistoryRepository.count();
 
         log.info("[getReportCounts] todayCount: {}, totalCount: {}", todayCount, totalCount);
-        return ReportCountDto.builder()
+        return ReportCountResponseDto.builder()
                 .todayReportCount(todayCount)
                 .totalReportCount(totalCount)
                 .build();
@@ -173,7 +173,6 @@ public class ReportServiceImpl implements ReportService {
     private void checkAndApplyRestriction(User seller, ReportType reportType) {
         Status aiAcceptStatus = statusManager.getStatus(REPORT, "AI_ACCEPTED");
         Status adminAcceptStatus = statusManager.getStatus(REPORT, "ADMIN_ACCEPTED");
-
         List<Status> acceptedStatuses = List.of(aiAcceptStatus, adminAcceptStatus);
 
         long violationCount = reportHistoryRepository
@@ -247,4 +246,11 @@ public class ReportServiceImpl implements ReportService {
         return response;
     }
 
+    @Override
+    public List<ReportTypeResponseDto> getReportTypes() {
+        List<ReportType> reportTypes = reportTypeRepository.findAll();
+        return reportTypes.stream()
+                .map(ReportTypeResponseDto::from)
+                .toList();
+    }
 }

@@ -38,7 +38,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -134,7 +133,7 @@ class ReportServiceTest {
         when(reportHistoryRepository.count()).thenReturn(20L);
 
         // when
-        ReportCountDto result = reportService.getReportCounts();
+        ReportCountResponseDto result = reportService.getReportCounts();
 
         // then
         assertNotNull(result);

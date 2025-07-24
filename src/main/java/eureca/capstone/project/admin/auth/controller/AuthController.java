@@ -31,7 +31,13 @@ public class AuthController {
     private final TokenService tokenService;
     private final RedisService redisService;
 
-    @Operation(summary = "관리자 로그인", description = "이메일과 비밀번호로 로그인하여 Access Token을 발급받습니다.") // swagger
+    @Operation(summary = "관리자 로그인", description = """
+            ### 이메일과 비밀번호로 로그인하여 Access Token을 발급받습니다.
+            ***
+            * 관리자 계정
+                * email: admin@admin.com
+                * password: admin
+            """)
     @PostMapping("/login")
     public BaseResponseDto<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto, HttpServletResponse httpServletResponse){
         Authentication authentication = authenticationManager.authenticate(
