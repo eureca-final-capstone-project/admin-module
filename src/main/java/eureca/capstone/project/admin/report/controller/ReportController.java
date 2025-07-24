@@ -58,7 +58,7 @@ public class ReportController {
             |---|---|:---:|---|---|
             | `statusCode` | `String` | X | 필터링할 신고 상태 | |
             | `keyword` | `String` | X | 검색어 (신고자 이메일) | |
-            | `pageable` | `Object`| O | 페이지 정보 (`page`, `size`, `sort`) | 페이지 정보 비어서 보내도 됩니다.(default로 size=20 적용됨)|
+            | `pageable` | `Object`| X | 페이지 정보 (`page`, `size`, `sort`) | 페이지 정보 비어서 보내도 됩니다.(default로 size=20 적용) |
             
             ### 🔑 권한
             * 관리자 권한 필요
@@ -112,7 +112,7 @@ public class ReportController {
             |---|---|:---:|---|---|
             | `statusCode` | `String` | X | 필터링할 제재 상태 | |
             | `keyword` | `String` | X | 검색어 (제재자 이메일) | |
-            | `pageable` | `Object`| O | 페이지 정보 (`page`, `size`, `sort`) | 페이지 정보 비어서 보내도 됩니다.(default로 size=20 적용됨)|
+            | `pageable` | `Object`| X | 페이지 정보 (`page`, `size`, `sort`) | 페이지 정보 비어서 보내도 됩니다.(default로 size=20 적용) |
             
             ### 🔑 권한
             * 관리자 권한 필요
@@ -191,7 +191,7 @@ public class ReportController {
                 request.getReportTypeId(),
                 request.getReason()
         );
-        return BaseResponseDto.success(null); // 데이터가 없는 성공 응답
+        return BaseResponseDto.success(null);
     }
 
     @Operation(summary = "관리자 신고 처리", description = """

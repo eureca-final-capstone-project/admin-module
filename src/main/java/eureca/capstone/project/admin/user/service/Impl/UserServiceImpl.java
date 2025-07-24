@@ -42,7 +42,7 @@ public class UserServiceImpl implements UserService {
     public UpdateUserResponseDto updateUserStatus(Long userId, UpdateUserRequestDto request) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException());
+                .orElseThrow(UserNotFoundException::new);
 
         log.info("[updateUserStatus] 사용자 조회 id: {}", user.getUserId());
 
