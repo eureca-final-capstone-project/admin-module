@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface ReportService {
 
-    ReportCountDto getReportCounts();
+    ReportCountResponseDto getReportCounts();
     Page<ReportHistoryDto> getReportHistoryListByStatusCode(String statusCode, String keyword, Pageable pageable);
     Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode,String keyword, Pageable pageable);
     void processReportByAdmin(Long reportHistoryId, ProcessReportDto request);

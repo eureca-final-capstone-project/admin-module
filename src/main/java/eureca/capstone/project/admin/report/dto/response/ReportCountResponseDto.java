@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(description = "신고 건수 응답 DTO")
-public class ReportCountDto {
+public class ReportCountResponseDto {
     @Schema(description = "오늘 접수된 신고 건수", example = "10")
     private long todayReportCount;
     @Schema(description = "총 신고 건수", example = "100")

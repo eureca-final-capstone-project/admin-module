@@ -51,13 +51,13 @@ public class ReportServiceImpl implements ReportService {
     private final UserAuthorityRepository userAuthorityRepository;
 
     @Override
-    public ReportCountDto getReportCounts() {
+    public ReportCountResponseDto getReportCounts() {
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
         long todayCount = reportHistoryRepository.countByCreatedAtAfter(startOfToday);
         long totalCount = reportHistoryRepository.count();
 
         log.info("[getReportCounts] todayCount: {}, totalCount: {}", todayCount, totalCount);
-        return ReportCountDto.builder()
+        return ReportCountResponseDto.builder()
                 .todayReportCount(todayCount)
                 .totalReportCount(totalCount)
                 .build();
