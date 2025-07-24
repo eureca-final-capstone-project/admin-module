@@ -11,6 +11,8 @@ import eureca.capstone.project.admin.market_statistic.domain.TransactionAmountSt
 import eureca.capstone.project.admin.market_statistic.repository.MarketStatisticRepository;
 import eureca.capstone.project.admin.market_statistic.repository.TransactionAmountStatisticRepository;
 import eureca.capstone.project.admin.report.repository.ReportHistoryRepository;
+import eureca.capstone.project.admin.transaction_feed.entity.SalesType;
+import eureca.capstone.project.admin.transaction_feed.repository.SalesTypeRepository;
 import eureca.capstone.project.admin.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,7 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,15 +41,15 @@ class DashboardServiceImplTest {
     @Mock private ReportHistoryRepository reportHistoryRepository;
     @Mock private MarketStatisticRepository marketStatisticsRepository;
     @Mock private TransactionAmountStatisticRepository transactionAmountStatisticRepository;
+    @Mock private SalesTypeRepository salesTypeRepository;
     @Mock private StatusManager statusManager;
 
     @InjectMocks
     private DashboardServiceImpl dashboardService;
 
     @Test
-    @DisplayName("대시보드 데이터 조회 성공")
-    void getDashboardData_Success() {
-        // 공통 stub
+    @DisplayName("대시보드 데이터 조회 성공_일반 판매 (시간별)")
+    void getDashboardData_Normal_Success() {
         Status activeStatus = new Status(1L, "USER", "ACTIVE", "활성");
         when(statusManager.getStatus("USER", "ACTIVE")).thenReturn(activeStatus);
         when(userRepository.countByStatus(activeStatus)).thenReturn(350L);
@@ -55,52 +57,44 @@ class DashboardServiceImplTest {
         when(reportHistoryRepository.countByCreatedAtAfter(any())).thenReturn(8L);
         when(reportHistoryRepository.count()).thenReturn(120L);
 
-        // 통신사 더미
-        TelecomCompany skt = new TelecomCompany(1L, "SKT");
-        TelecomCompany kt  = new TelecomCompany(2L, "KT");
+        when(salesTypeRepository.findByName("일반 판매"))
+                .thenReturn(Optional.of(new SalesType(1L, "일반 판매")));
 
-        // from/to를 받아 그 안에 맞는 2개 시간대 데이터(마지막 2시간) 생성
         when(marketStatisticsRepository.findAllByStaticsTimeRange(any(), any()))
                 .thenAnswer(inv -> {
                     LocalDateTime from = inv.getArgument(0);
                     LocalDateTime to   = inv.getArgument(1);
-                    LocalDateTime last = to.minusHours(1);      // 포함되는 마지막 정각
-                    LocalDateTime prev = last.minusHours(1);
-
-                    return List.of(
-                            new MarketStatistic(1L, 150L, 100L, last, skt),
-                            new MarketStatistic(2L, 149L, 120L, last, kt),
-                            new MarketStatistic(3L, 148L,  80L, prev, skt),
-                            new MarketStatistic(4L, 147L,  90L, prev, kt)
-                    );
-                });
-
-        when(transactionAmountStatisticRepository.findAllByStaticsTimeRange(any(), any()))
-                .thenAnswer(inv -> {
-                    LocalDateTime to   = inv.getArgument(1);
                     LocalDateTime last = to.minusHours(1);
                     LocalDateTime prev = last.minusHours(1);
                     return List.of(
-                            new TransactionAmountStatistic(1L, 220L, last),
-                            new TransactionAmountStatistic(2L, 170L, prev)
+                            new MarketStatistic(1L, 150L, 100L, last, new TelecomCompany(1L, "SKT")),
+                            new MarketStatistic(2L, 149L, 120L, last, new TelecomCompany(2L, "KT")),
+                            new MarketStatistic(3L, 148L,  80L, prev, new TelecomCompany(1L, "SKT")),
+                            new MarketStatistic(4L, 147L,  90L, prev, new TelecomCompany(2L, "KT"))
                     );
                 });
 
-        // when
-        DashboardResponseDto result = dashboardService.getDashboardData();
+        when(transactionAmountStatisticRepository.findAllByStaticsTimeRange(anyLong(), anyString(), any(), any()))
+                .thenAnswer(inv -> {
+                    LocalDateTime to   = inv.getArgument(3);
+                    LocalDateTime last = to.minusHours(1);
+                    LocalDateTime prev = last.minusHours(1);
+                    return List.of(
+                            TransactionAmountStatistic.builder().statisticsId(1L).transactionAmount(220L).staticsTime(last).build(),
+                            TransactionAmountStatistic.builder().statisticsId(2L).transactionAmount(170L).staticsTime(prev).build()
+                    );
+                });
 
-        // then 기본 카운트
+        DashboardResponseDto result = dashboardService.getDashboardData("일반 판매");
+
         assertNotNull(result);
         assertEquals(350L, result.getTotalUserCount());
         assertEquals(15L,  result.getTodayUserCount());
         assertEquals(120L, result.getTotalReportCount());
         assertEquals(8L,   result.getTodayReportCount());
-
-        // 24개 슬롯
         assertEquals(24, result.getPriceStats().size());
-        assertEquals(24, result.getVolumeStats().size());
+        assertEquals(24, result.getVolumeStats().getVolumes().size());
 
-        // 서비스에서 전달한 from/to 캡처 -> 기대 hour 시퀀스 구성
         ArgumentCaptor<LocalDateTime> fromCap = ArgumentCaptor.forClass(LocalDateTime.class);
         ArgumentCaptor<LocalDateTime> toCap   = ArgumentCaptor.forClass(LocalDateTime.class);
         verify(marketStatisticsRepository).findAllByStaticsTimeRange(fromCap.capture(), toCap.capture());
@@ -108,44 +102,76 @@ class DashboardServiceImplTest {
 
         List<Integer> expectedHours = IntStream.range(0, 24)
                 .map(i -> start.plusHours(i).getHour())
-                .boxed()
-                .toList();
-
+                .boxed().toList();
         List<Integer> actualPriceHours = result.getPriceStats().stream()
-                .map(HourlyPriceStatDto::getHour)
-                .toList();
-        assertEquals(expectedHours, actualPriceHours, "Price 시간 슬롯 순서 불일치");
+                .map(HourlyPriceStatDto::getHour).toList();
+        assertEquals(expectedHours, actualPriceHours);
 
-        List<Integer> actualVolumeHours = result.getVolumeStats().stream()
-                .map(VolumeStatDto::getHour)
-                .toList();
-        assertEquals(expectedHours, actualVolumeHours, "Volume 시간 슬롯 순서 불일치");
+        ArgumentCaptor<String> statTypeCap = ArgumentCaptor.forClass(String.class);
+        verify(transactionAmountStatisticRepository).findAllByStaticsTimeRange(
+                anyLong(), statTypeCap.capture(), any(), any());
+        assertEquals("HOUR", statTypeCap.getValue());
 
-        // DTO -> LocalDateTime 매핑
-        Map<LocalDateTime, HourlyPriceStatDto> priceDtoMap = result.getPriceStats().stream()
-                .collect(Collectors.toMap(
-                        p -> LocalDate.parse(p.getDate()).atTime(LocalTime.of(p.getHour(), 0)),
-                        p -> p
-                ));
-        Map<LocalDateTime, VolumeStatDto> volumeDtoMap = result.getVolumeStats().stream()
+        Map<LocalDateTime, VolumeStatDto> volMap = result.getVolumeStats().getVolumes().stream()
                 .collect(Collectors.toMap(
                         v -> LocalDate.parse(v.getDate()).atTime(LocalTime.of(v.getHour(), 0)),
                         v -> v
                 ));
-
-        // 우리가 삽입한 두 시간대(last, prev) 값 검증
         LocalDateTime last = toCap.getValue().minusHours(1);
         LocalDateTime prev = last.minusHours(1);
-
-        assertTrue(priceDtoMap.containsKey(last), "Price DTO에 마지막 시간대가 없음");
-        assertTrue(priceDtoMap.containsKey(prev), "Price DTO에 이전 시간대가 없음");
-        assertTrue(volumeDtoMap.containsKey(last), "Volume DTO에 마지막 시간대가 없음");
-        assertTrue(volumeDtoMap.containsKey(prev), "Volume DTO에 이전 시간대가 없음");
-
-        assertEquals(2, priceDtoMap.get(last).getPricesByCarrier().size());
-        assertEquals(2, priceDtoMap.get(prev).getPricesByCarrier().size());
-
-        assertEquals(220L, volumeDtoMap.get(last).getSaleVolume());
-        assertEquals(170L, volumeDtoMap.get(prev).getSaleVolume());
+        assertTrue(volMap.containsKey(last));
+        assertTrue(volMap.containsKey(prev));
+        assertEquals(24, result.getPriceStats().size());
+        assertEquals(24, result.getVolumeStats().getVolumes().size());
+        assertEquals(220L, volMap.get(last).getSaleVolume());
+        assertEquals(170L, volMap.get(prev).getSaleVolume());
     }
+
+    @Test
+    @DisplayName("대시보드 데이터 조회 성공_입찰 판매 (일별)")
+    void getDashboardData_Bid_Success() {
+        Status activeStatus = new Status(1L, "USER", "ACTIVE", "활성");
+        when(statusManager.getStatus("USER", "ACTIVE")).thenReturn(activeStatus);
+        when(userRepository.countByStatus(activeStatus)).thenReturn(350L);
+        when(userRepository.countByCreatedAtBetween(any(), any())).thenReturn(15L);
+        when(reportHistoryRepository.countByCreatedAtAfter(any())).thenReturn(8L);
+        when(reportHistoryRepository.count()).thenReturn(120L);
+
+        when(salesTypeRepository.findByName("입찰 판매"))
+                .thenReturn(Optional.of(new SalesType(2L, "입찰 판매")));
+
+        when(marketStatisticsRepository.findAllByStaticsTimeRange(any(), any()))
+                .thenReturn(Collections.emptyList());
+
+        when(transactionAmountStatisticRepository.findAllByStaticsTimeRange(anyLong(), anyString(), any(), any()))
+                .thenAnswer(inv -> {
+                    LocalDateTime to = inv.getArgument(3);
+                    LocalDateTime lastDay = to.minusDays(1);
+                    LocalDateTime prevDay = lastDay.minusDays(1);
+                    return List.of(
+                            TransactionAmountStatistic.builder().statisticsId(1L).transactionAmount(220L).staticsTime(lastDay).build(),
+                            TransactionAmountStatistic.builder().statisticsId(2L).transactionAmount(170L).staticsTime(prevDay).build()
+                    );
+                });
+
+        DashboardResponseDto result = dashboardService.getDashboardData("입찰 판매");
+
+        assertNotNull(result);
+        assertEquals(24, result.getPriceStats().size());
+        assertEquals(7, result.getVolumeStats().getVolumes().size());
+
+        ArgumentCaptor<String> statTypeCap = ArgumentCaptor.forClass(String.class);
+        verify(transactionAmountStatisticRepository).findAllByStaticsTimeRange(
+                anyLong(), statTypeCap.capture(), any(), any());
+        assertEquals("DAY", statTypeCap.getValue());
+
+        Map<String, Long> volumeMap = result.getVolumeStats().getVolumes().stream()
+                .collect(Collectors.toMap(
+                        VolumeStatDto::getDate,
+                        VolumeStatDto::getSaleVolume
+                ));
+        long sum = volumeMap.values().stream().mapToLong(Long::longValue).sum();
+        assertEquals(390L, sum);
+    }
+
 }
