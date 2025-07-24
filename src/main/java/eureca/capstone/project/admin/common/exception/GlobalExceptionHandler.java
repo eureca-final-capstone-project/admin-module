@@ -84,4 +84,11 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage(), e);
         return BaseResponseDto.fail(ErrorCode.TRANSACTION_FEED_NOT_FOUND);
     }
+
+    @ExceptionHandler(SalesTypeNotFoundException.class)
+    public BaseResponseDto<ErrorResponseDto> handleSalesTypeNotFoundException(SalesTypeNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.SALES_TYPE_NOT_FOUND);
+    }
+
 }
