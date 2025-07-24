@@ -5,8 +5,8 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class HourlyVolumeStatDto {
+public class VolumeStatDto {
     private String date; // 날짜 (예: "2025-07-16")
-    private int hour;    // 시간 (0 ~ 23)
+    private Integer hour;    // 시간 (0 ~ 23)
     private long saleVolume;
 }

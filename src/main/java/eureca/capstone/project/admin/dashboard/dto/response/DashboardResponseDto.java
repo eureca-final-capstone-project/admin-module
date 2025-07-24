@@ -19,5 +19,5 @@ public class DashboardResponseDto {
     private List<HourlyPriceStatDto> priceStats;
 
     // 거래량 통계 (그래프용)
-    private List<HourlyVolumeStatDto> volumeStats;
+    private TransactionVolumeStatDto volumeStats;
 }
