@@ -20,7 +20,33 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
 
-    @Operation(summary = "대시보드 데이터 조회", description = "관리자 페이지 대시보드에 필요한 모든 데이터를 조회합니다. \nsalesType = \"일반 판매\" or \"입찰 판매\". (salesType을 명시하지 않을 경우 default로 \"일반 판매\"로 지정됩니다.)")
+    @Operation(
+            summary = "대시보드 데이터 조회",
+            description = """
+            ## 관리자 페이지 대시보드에 필요한 모든 데이터 조회
+            * salesType = "일반 판매" or "입찰 판매"
+            * salesType을 명시하지 않을 경우 default로 "일반 판매" 지정됨
+
+            ***
+
+            ### 📥 요청 파라미터 (Query Parameters)
+            | 이름        | 타입     | 필수 | 설명                                                         |
+            |------------|---------|:---:|-------------------------------------------------------------|
+            | `salesType` | `String` |  X  | 거래량 조회 시 판매 유형 (일반 판매 또는 입찰 판매)             |
+
+            ### 🔑 권한
+            * 관리자 권한 필요
+
+            ### ❌ 주요 실패 코드
+            * 70013 (SALES_TYPE_NOT_FOUND): 판매 유형이 존재하지 않는 경우
+            * 70014 (STATISTIC_NOT_FOUND): 통계 데이터가 존재하지 않는 경우
+            
+            ### 📝 참고 사항
+            * **salesType** 에 따라  
+              - "일반 판매": 거래량 **시간별** 통계 (최근 24시간)  
+              - "입찰 판매": 거래량 **일별** 통계 (최근 7일)
+            """
+    )
     @GetMapping
     public BaseResponseDto<DashboardResponseDto> getDashboardData(
             @RequestParam(value="salesType", defaultValue="일반 판매") String salesType) {
@@ -28,7 +54,32 @@ public class DashboardController {
         return BaseResponseDto.success(dashboardData);
     }
 
-    @Operation(summary="거래량 통계 조회",  description = "거래량 통계를 조회하는 api입니다. \nsalesType = \"일반 판매\" or \"입찰 판매\". (salesType을 명시하지 않을 경우 default로 \"일반 판매\"로 지정됩니다.)")
+    @Operation(
+            summary = "거래량 통계 조회",
+            description = """
+            ## 거래량 통계만 별도 조회
+            * salesType = "일반 판매" or "입찰 판매"
+            * salesType을 명시하지 않을 경우 default로 "일반 판매" 지정됨
+
+            ***
+
+            ### 📥 요청 파라미터 (Query Parameters)
+            | 이름        | 타입     | 필수 | 설명                                                                      |
+            |------------|---------|:---:|--------------------------------------------------------------------------|
+            | `salesType` | `String` |  X  | 거래량 조회 시 판매 유형 (일반 판매 또는 입찰 판매)     |
+
+            ### 🔑 권한
+            * 관리자 권한 필요
+
+            ### ❌ 주요 실패 코드
+            * `70013` (SALES_TYPE_NOT_FOUND): 판매 유형이 존재하지 않는 경우
+            * `70014` (STATISTIC_NOT_FOUND): 통계 데이터가 존재하지 않는 경우
+            
+            ### 📝 참고 사항
+            * **결과**: `TransactionVolumeStatDto` 형태로 반환  
+            * 시간별(`HOUR`) vs 일별(`DAY`) 통계는 `statisticType` 필드로 구분
+            """
+    )
     @GetMapping("/volume-stats")
     public BaseResponseDto<TransactionVolumeStatDto> getVolumeStats(
             @RequestParam(value="salesType", defaultValue="일반 판매") String salesType) {

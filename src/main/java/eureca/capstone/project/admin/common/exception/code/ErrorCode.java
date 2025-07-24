@@ -32,7 +32,8 @@ public enum ErrorCode {
     AI_REVIEW_FAILED(70008, "AI_REVIEW_FAILED", "AI 검토에 실패했습니다. 잠시 후 다시 시도해 주세요."),
     STATUS_NOT_FOUND(70009, "STATUS_NOT_FOUND","상태값을 찾을 수 없습니다"),
     USER_NOT_FOUND(70010, "USER_NOT_FOUND", "유저를 찾을 수 없습니다."),
-    SALES_TYPE_NOT_FOUND(70013, "SALES_TYPE_NOT_FOUND", "판매 유형을 찾을 수 없습니다.");
+    SALES_TYPE_NOT_FOUND(70013, "SALES_TYPE_NOT_FOUND", "판매 유형을 찾을 수 없습니다."),
+    STATISTIC_NOT_FOUND(70014, "STATISTIC_NOT_FOUND", "통계를 찾을 수 없습니다.");
 
 
     private final int code;

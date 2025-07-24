@@ -3,6 +3,7 @@ package eureca.capstone.project.admin.dashboard.service.impl;
 
 import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.common.exception.custom.SalesTypeNotFoundException;
+import eureca.capstone.project.admin.common.exception.custom.StatisticNotFoundException;
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.dashboard.dto.response.*;
 import eureca.capstone.project.admin.dashboard.service.DashboardService;
@@ -61,6 +62,9 @@ public class DashboardServiceImpl implements DashboardService {
 
         // 시세 통계
         List<MarketStatistic> recentStats = marketStatisticsRepository.findAllByStaticsTimeRange(startTime, endTime);
+        if (recentStats.isEmpty()) {
+            throw new StatisticNotFoundException();
+        }
         List<HourlyPriceStatDto> priceStatsDtoList = buildPriceStats(startTime, endTime, recentStats);
         log.info("[getDashboardData] {} {}시 ~ {} {}시 시세통계 조회 {}건", startTime.toLocalDate(), startTime.getHour(), endTime.toLocalDate(), endTime.getHour()-1, priceStatsDtoList.size());
 
@@ -72,6 +76,9 @@ public class DashboardServiceImpl implements DashboardService {
 
         List<TransactionAmountStatistic> volumeStats =
                 transactionAmountStatisticRepository.findAllByStaticsTimeRange(salesTypeId, statType, startTime, endTime);
+        if(volumeStats.isEmpty()) {
+            throw new StatisticNotFoundException();
+        }
         log.info("[getDashboardData] 거래량 통계 조회 {}건. (시간: {} ~ {})", volumeStats.size(), startTime, endTime);
 
         List<VolumeStatDto> volumeStatsDtoList =
@@ -97,37 +104,36 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public TransactionVolumeStatDto transactionVolumeStatData(String salesTypeName) {
-        // 1) SalesType 조회 및 statType 결정
+
         SalesType salesType = salesTypeRepository.findByName(salesTypeName)
                 .orElseThrow(SalesTypeNotFoundException::new);
         String statType = salesTypeName.equals("일반 판매") ? "HOUR" : "DAY";
-        log.info("[getVolumeStats] salesType={}, statType={}", salesTypeName, statType);
+        log.info("[transactionVolumeStatData] salesType={}, statType={}", salesTypeName, statType);
 
-        // 2) 기간 계산
-        LocalDateTime now     = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
-        LocalDateTime start   = now.minusHours(24);
-        LocalDateTime end     = now;
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
+        LocalDateTime startTime = now.minusHours(24);
+        LocalDateTime endTime = now;
         if ("DAY".equals(statType)) {
-            start = now.minusDays(7).with(LocalTime.MIN);
-            end   = now.with(LocalTime.MIN);
+            startTime = now.minusDays(7).with(LocalTime.MIN);
+            endTime = now.with(LocalTime.MIN);
         }
 
-        // 3) Repo 호출
-        List<TransactionAmountStatistic> stats =
+        List<TransactionAmountStatistic> volumeStats =
                 transactionAmountStatisticRepository.findAllByStaticsTimeRange(
                         salesType.getSalesTypeId(),
                         statType,
-                        start,
-                        end
+                        startTime,
+                        endTime
                 );
-        log.info("[getVolumeStats] stats fetched={}, period=[{}~{}]", stats.size(), start, end);
+        if(volumeStats.isEmpty()) {
+            throw new StatisticNotFoundException();
+        }
+        log.info("[transactionVolumeStatData] 거래량 통계 조회 {}건. (시간: {} ~ {})", volumeStats.size(), startTime, endTime);
 
-        // 4) DTO 변환
         List<VolumeStatDto> volumes = "HOUR".equals(statType)
-                ? buildHourlyVolumeDtos(start, end, stats)
-                : buildDailyVolumeDtos(start.toLocalDate(), end.toLocalDate().minusDays(1), stats);
+                ? buildHourlyVolumeDtos(startTime, endTime, volumeStats)
+                : buildDailyVolumeDtos(startTime.toLocalDate(), endTime.toLocalDate().minusDays(1), volumeStats);
 
-        // 5) 래핑 후 반환
         return TransactionVolumeStatDto.builder()
                 .salesType(salesTypeName)
                 .statisticType(statType)
