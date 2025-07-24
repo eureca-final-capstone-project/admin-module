@@ -5,7 +5,7 @@ import eureca.capstone.project.admin.common.entity.TelecomCompany;
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.dashboard.dto.response.DashboardResponseDto;
 import eureca.capstone.project.admin.dashboard.dto.response.HourlyPriceStatDto;
-import eureca.capstone.project.admin.dashboard.dto.response.HourlyVolumeStatDto;
+import eureca.capstone.project.admin.dashboard.dto.response.VolumeStatDto;
 import eureca.capstone.project.admin.market_statistic.domain.MarketStatistic;
 import eureca.capstone.project.admin.market_statistic.domain.TransactionAmountStatistic;
 import eureca.capstone.project.admin.market_statistic.repository.MarketStatisticRepository;
@@ -117,7 +117,7 @@ class DashboardServiceImplTest {
         assertEquals(expectedHours, actualPriceHours, "Price 시간 슬롯 순서 불일치");
 
         List<Integer> actualVolumeHours = result.getVolumeStats().stream()
-                .map(HourlyVolumeStatDto::getHour)
+                .map(VolumeStatDto::getHour)
                 .toList();
         assertEquals(expectedHours, actualVolumeHours, "Volume 시간 슬롯 순서 불일치");
 
@@ -127,7 +127,7 @@ class DashboardServiceImplTest {
                         p -> LocalDate.parse(p.getDate()).atTime(LocalTime.of(p.getHour(), 0)),
                         p -> p
                 ));
-        Map<LocalDateTime, HourlyVolumeStatDto> volumeDtoMap = result.getVolumeStats().stream()
+        Map<LocalDateTime, VolumeStatDto> volumeDtoMap = result.getVolumeStats().stream()
                 .collect(Collectors.toMap(
                         v -> LocalDate.parse(v.getDate()).atTime(LocalTime.of(v.getHour(), 0)),
                         v -> v

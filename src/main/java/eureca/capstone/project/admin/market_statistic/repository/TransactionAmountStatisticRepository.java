@@ -12,6 +12,13 @@ import java.util.List;
 public interface TransactionAmountStatisticRepository extends JpaRepository<TransactionAmountStatistic, Long> {
     @Query("select ts from TransactionAmountStatistic ts " +
             "where ts.staticsTime >= :from and ts.staticsTime < :to " +
+            "and ts.salesType.salesTypeId = :salesType " +
+            "and ts.statisticType = :statType " +
             "order by ts.staticsTime asc")
-    List<TransactionAmountStatistic> findAllByStaticsTimeRange(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+    List<TransactionAmountStatistic> findAllByStaticsTimeRange(
+            @Param("salesType") Long salesType,
+            @Param("statType") String statType,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
 }
