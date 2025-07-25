@@ -144,7 +144,7 @@ public class DashboardServiceImpl implements DashboardService {
                             .stream()
                             .map(stat -> CarrierPriceDto.builder()
                                     .carrierName(stat.getTelecomCompany().getName())
-                                    .pricePerGb(stat.getAveragePrice())
+                                    .pricePerMb(stat.getAveragePrice())
                                     .build())
                             .toList();
 
