@@ -44,6 +44,9 @@ public class DashboardController {
             * **salesType** 에 따라  
               - "일반 판매": 거래량 **시간별** 통계 (최근 24시간)  
               - "입찰 판매": 거래량 **일별** 통계 (최근 7일)
+              
+            * 시세통계는 최근 24시간의 **시간별** 통계를 반환합니다.
+            * 특정 시간대에 특정 통신사의 거래 내역이 없는 경우, 해당 통신사에 대한 `pricePerMb` 값은 `null`로 반환됩니다.
             """
     )
     @GetMapping
@@ -74,6 +77,9 @@ public class DashboardController {
             * `70013` (SALES_TYPE_NOT_FOUND): 판매 유형이 존재하지 않는 경우
             
             ### 📝 참고 사항
+            * **salesType** 에 따라  
+              - "일반 판매": 거래량 **시간별** 통계 (최근 24시간)  
+              - "입찰 판매": 거래량 **일별** 통계 (최근 7일)
             * **결과**: `TransactionVolumeStatDto` 형태로 반환  
             * 시간별(`HOUR`) vs 일별(`DAY`) 통계는 `statisticType` 필드로 구분
             """
