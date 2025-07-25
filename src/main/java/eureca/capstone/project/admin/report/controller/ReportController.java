@@ -220,7 +220,7 @@ public class ReportController {
             ```
             
             ### 🔑 권한
-            * 없음
+            * 관리자 권한 필요
             """)
     @GetMapping("/report-types")
     public BaseResponseDto<List<ReportTypeResponseDto>> getReportTypes() {
