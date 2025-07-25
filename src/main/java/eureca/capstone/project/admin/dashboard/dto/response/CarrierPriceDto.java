@@ -10,6 +10,6 @@ import lombok.Getter;
 public class CarrierPriceDto {
     @Schema(description = "통신사 명(SKT, KT, LG U+)", example = "SKT")
     private String carrierName; // "SKT", "KT", "LGU+"
-    @Schema(description = "1GB 당 평균 시세 (거래내역 없을 경우 NULL 반환)", example = "100")
-    private Long pricePerGb; // 1GB당 평균 시세
+    @Schema(description = "100MB 당 평균 시세 (거래내역 없을 경우 NULL 반환)", example = "100")
+    private Long pricePerMb; // 1GB당 평균 시세
 }
