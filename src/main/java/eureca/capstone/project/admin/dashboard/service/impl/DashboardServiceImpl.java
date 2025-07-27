@@ -53,37 +53,13 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime endTime = now.truncatedTo(ChronoUnit.HOURS);
         LocalDateTime startTime = endTime.minusHours(24);
 
-        SalesType salesType = salesTypeRepository.findByName(salesTypeName)
-                .orElseThrow(SalesTypeNotFoundException::new);
-        Long salesTypeId = salesType.getSalesTypeId();
-        String statType = salesTypeName.equals("일반 판매") ? "HOUR" : "DAY";
-        log.info("[getDashboardData] salesType: {}, statType: {}", salesTypeName, statType);
-
         // 시세 통계
         List<MarketStatistic> recentStats = marketStatisticsRepository.findAllByStaticsTimeRange(startTime, endTime);
         List<HourlyPriceStatDto> priceStatsDtoList = buildPriceStats(startTime, endTime, recentStats);
         log.info("[getDashboardData] {} {}시 ~ {} {}시 시세통계 조회 {}건", startTime.toLocalDate(), startTime.getHour(), endTime.toLocalDate(), endTime.getHour()-1, priceStatsDtoList.size());
 
         // 거래량 통계
-        if("DAY".equals(statType)) {
-            startTime = endTime.minusDays(7).with(LocalTime.MIN);
-            endTime   = endTime.with(LocalTime.MIN);
-        }
-
-        List<TransactionAmountStatistic> volumeStats =
-                transactionAmountStatisticRepository.findAllByStaticsTimeRange(salesTypeId, statType, startTime, endTime);
-        log.info("[getDashboardData] 거래량 통계 조회 {}건. (시간: {} ~ {})", volumeStats.size(), startTime, endTime);
-
-        List<VolumeStatDto> volumeStatsDtoList =
-                "HOUR".equals(statType)
-                        ? buildHourlyVolumeDtos(startTime, endTime, volumeStats)
-                        : buildDailyVolumeDtos(startTime.toLocalDate(), endTime.toLocalDate().minusDays(1), volumeStats);
-
-        TransactionVolumeStatDto volumeResponse = TransactionVolumeStatDto.builder()
-                .salesType(salesType.getName())
-                .statisticType(statType)
-                .volumes(volumeStatsDtoList)
-                .build();
+        TransactionVolumeStatDto volumeResponse = getTransactionVolumeStats(salesTypeName);
 
         return DashboardResponseDto.builder()
                 .todayUserCount(todayUserCount)
@@ -97,38 +73,44 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public TransactionVolumeStatDto transactionVolumeStatData(String salesTypeName) {
+        return getTransactionVolumeStats(salesTypeName);
+    }
 
+    private TransactionVolumeStatDto getTransactionVolumeStats(String salesTypeName) {
         SalesType salesType = salesTypeRepository.findByName(salesTypeName)
                 .orElseThrow(SalesTypeNotFoundException::new);
         String statType = salesTypeName.equals("일반 판매") ? "HOUR" : "DAY";
-        log.info("[transactionVolumeStatData] salesType={}, statType={}", salesTypeName, statType);
+        log.info("[getTransactionVolumeStats] salesType={}, statType={}", salesTypeName, statType);
 
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
-        LocalDateTime startTime = now.minusHours(24);
-        LocalDateTime endTime = now;
+        LocalDateTime startTime;
+        LocalDateTime endTime;
+
         if ("DAY".equals(statType)) {
             startTime = now.minusDays(7).with(LocalTime.MIN);
             endTime = now.with(LocalTime.MIN);
+        } else { // "HOUR"
+            startTime = now.minusHours(24);
+            endTime = now;
         }
 
-        List<TransactionAmountStatistic> volumeStats =
-                transactionAmountStatisticRepository.findAllByStaticsTimeRange(
-                        salesType.getSalesTypeId(),
-                        statType,
-                        startTime,
-                        endTime
-                );
-        log.info("[transactionVolumeStatData] 거래량 통계 조회 {}건. (시간: {} ~ {})", volumeStats.size(), startTime, endTime);
+        List<TransactionAmountStatistic> volumeStats = fetchVolumeStats(salesType.getSalesTypeId(), statType, startTime, endTime);
 
         List<VolumeStatDto> volumes = "HOUR".equals(statType)
                 ? buildHourlyVolumeDtos(startTime, endTime, volumeStats)
-                : buildDailyVolumeDtos(startTime.toLocalDate(), endTime.toLocalDate().minusDays(1), volumeStats);
+                : buildDailyVolumeDtos(startTime, endTime, volumeStats);
 
         return TransactionVolumeStatDto.builder()
                 .salesType(salesTypeName)
                 .statisticType(statType)
                 .volumes(volumes)
                 .build();
+    }
+
+    private List<TransactionAmountStatistic> fetchVolumeStats(Long salesTypeId, String statType, LocalDateTime startTime, LocalDateTime endTime) {
+        List<TransactionAmountStatistic> volumeStats = transactionAmountStatisticRepository.findAllByStaticsTimeRange(salesTypeId, statType, startTime, endTime);
+        log.info("[fetchVolumeStats] 거래량 통계 조회 {}건. (시간: {} ~ {})", volumeStats.size(), startTime, endTime);
+        return volumeStats;
     }
 
     private List<HourlyPriceStatDto> buildPriceStats(LocalDateTime start, LocalDateTime end,
@@ -173,13 +155,15 @@ public class DashboardServiceImpl implements DashboardService {
         return result;
     }
 
-    private List<VolumeStatDto> buildDailyVolumeDtos(LocalDate start, LocalDate end,
+    private List<VolumeStatDto> buildDailyVolumeDtos(LocalDateTime start, LocalDateTime end,
                                                      List<TransactionAmountStatistic> stats) {
         Map<LocalDate, Long> map = stats.stream()
                 .collect(Collectors.toMap(s -> s.getStaticsTime().toLocalDate(),
                         TransactionAmountStatistic::getTransactionAmount));
         List<VolumeStatDto> result = new ArrayList<>();
-        for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
+        LocalDate startDate = start.toLocalDate();
+        LocalDate endDate = end.toLocalDate().minusDays(1);
+        for (LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
             result.add(VolumeStatDto.builder()
                     .date(d.toString())
                     .hour(null)
