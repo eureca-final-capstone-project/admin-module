@@ -6,6 +6,7 @@ import eureca.capstone.project.admin.common.exception.custom.SalesTypeNotFoundEx
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.dashboard.dto.response.*;
 import eureca.capstone.project.admin.dashboard.service.DashboardService;
+import eureca.capstone.project.admin.dashboard.service.strategy.VolumeStatStrategy;
 import eureca.capstone.project.admin.market_statistic.domain.MarketStatistic;
 import eureca.capstone.project.admin.market_statistic.domain.TransactionAmountStatistic;
 import eureca.capstone.project.admin.market_statistic.repository.MarketStatisticRepository;
@@ -23,7 +24,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,6 +42,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final TransactionAmountStatisticRepository transactionAmountStatisticRepository;
     private final SalesTypeRepository salesTypeRepository;
     private final StatusManager statusManager;
+    private final List<VolumeStatStrategy> strategies;
 
     @Override
     public DashboardResponseDto getDashboardData(String salesTypeName) {
@@ -77,10 +82,11 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private TransactionVolumeStatDto getTransactionVolumeStats(String salesTypeName) {
+        VolumeStatStrategy strategy = getStrategy(salesTypeName);
+        String statType = strategy.getStatType();
+
         SalesType salesType = salesTypeRepository.findByName(salesTypeName)
                 .orElseThrow(SalesTypeNotFoundException::new);
-        String statType = salesTypeName.equals("일반 판매") ? "HOUR" : "DAY";
-        log.info("[getTransactionVolumeStats] salesType={}, statType={}", salesTypeName, statType);
 
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
         LocalDateTime startTime;
@@ -95,16 +101,20 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         List<TransactionAmountStatistic> volumeStats = fetchVolumeStats(salesType.getSalesTypeId(), statType, startTime, endTime);
-
-        List<VolumeStatDto> volumes = "HOUR".equals(statType)
-                ? buildHourlyVolumeDtos(startTime, endTime, volumeStats)
-                : buildDailyVolumeDtos(startTime, endTime, volumeStats);
+        List<VolumeStatDto> volumes = strategy.buildVolumeDtos(startTime, endTime, volumeStats);
 
         return TransactionVolumeStatDto.builder()
                 .salesType(salesTypeName)
                 .statisticType(statType)
                 .volumes(volumes)
                 .build();
+    }
+
+    private VolumeStatStrategy getStrategy(String salesTypeName) {
+        return strategies.stream()
+                .filter(s -> s.supports(salesTypeName))
+                .findFirst()
+                .orElseThrow(SalesTypeNotFoundException::new);
     }
 
     private List<TransactionAmountStatistic> fetchVolumeStats(Long salesTypeId, String statType, LocalDateTime startTime, LocalDateTime endTime) {
@@ -138,39 +148,4 @@ public class DashboardServiceImpl implements DashboardService {
         }
         return list;
     }
-
-    private List<VolumeStatDto> buildHourlyVolumeDtos(LocalDateTime start, LocalDateTime end,
-                                                      List<TransactionAmountStatistic> stats) {
-        Map<LocalDateTime, Long> map = stats.stream()
-                .collect(Collectors.toMap(TransactionAmountStatistic::getStaticsTime,
-                        TransactionAmountStatistic::getTransactionAmount));
-        List<VolumeStatDto> result = new ArrayList<>();
-        for (LocalDateTime t = start; !t.isAfter(end.minusHours(1)); t = t.plusHours(1)) {
-            result.add(VolumeStatDto.builder()
-                    .date(t.toLocalDate().toString())
-                    .hour(t.getHour())
-                    .saleVolume(map.getOrDefault(t, 0L))
-                    .build());
-        }
-        return result;
-    }
-
-    private List<VolumeStatDto> buildDailyVolumeDtos(LocalDateTime start, LocalDateTime end,
-                                                     List<TransactionAmountStatistic> stats) {
-        Map<LocalDate, Long> map = stats.stream()
-                .collect(Collectors.toMap(s -> s.getStaticsTime().toLocalDate(),
-                        TransactionAmountStatistic::getTransactionAmount));
-        List<VolumeStatDto> result = new ArrayList<>();
-        LocalDate startDate = start.toLocalDate();
-        LocalDate endDate = end.toLocalDate().minusDays(1);
-        for (LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
-            result.add(VolumeStatDto.builder()
-                    .date(d.toString())
-                    .hour(null)
-                    .saleVolume(map.getOrDefault(d, 0L))
-                    .build());
-        }
-        return result;
-    }
-
 }
