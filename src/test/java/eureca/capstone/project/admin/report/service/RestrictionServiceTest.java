@@ -3,6 +3,7 @@ package eureca.capstone.project.admin.report.service;
 
 import eureca.capstone.project.admin.auth.entity.Authority;
 import eureca.capstone.project.admin.auth.entity.UserAuthority;
+import eureca.capstone.project.admin.auth.repository.AuthorityRepository;
 import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
 import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.common.exception.custom.AlreadyProcessedRestrictionException;
@@ -59,6 +60,9 @@ public class RestrictionServiceTest {
 
     @Mock
     private UserAuthorityRepository userAuthorityRepository;
+
+    @Mock
+    private AuthorityRepository authorityRepository;
 
     @Mock
     private TransactionFeedRepository transactionFeedRepository;
@@ -193,7 +197,7 @@ public class RestrictionServiceTest {
     @Test
     void acceptRestrictions_Restriction_Success() {
         // given
-        Status pendingStatus = Status.builder().domain("RESTRICTION").code("PENDING").build();
+        Status pendingStatus = Status.builder().statusId(5L).domain("RESTRICTION").code("PENDING").build();
         RestrictionTarget restrictionTarget = RestrictionTarget.builder()
                 .restrictionType(RestrictionType.builder().duration(-1).build())
                 .status(pendingStatus)
@@ -202,10 +206,10 @@ public class RestrictionServiceTest {
 
         ReflectionTestUtils.setField(restrictionTarget, "restrictionTargetId", 1L);
 
-        Status bannedStatus = Status.builder().domain("USER").code("BANNED").build();
-        Status completedStatus = Status.builder().domain("RESTRICTION").code("COMPLETED").build();
-        Status reportCompletedStatus = Status.builder().domain("REPORT").code("COMPLETED").build();
-        Status blurredStatus = Status.builder().domain("FEED").code("BLURRED").build();
+        Status bannedStatus = Status.builder().statusId(1L).domain("USER").code("BANNED").build();
+        Status completedStatus = Status.builder().statusId(2L).domain("RESTRICTION").code("COMPLETED").build();
+        Status reportCompletedStatus = Status.builder().statusId(3L).domain("REPORT").code("COMPLETED").build();
+        Status blurredStatus = Status.builder().statusId(4L).domain("FEED").code("BLURRED").build();
 
         when(statusManager.getStatus("USER", "BANNED")).thenReturn(bannedStatus);
         when(statusManager.getStatus("RESTRICTION", "COMPLETED")).thenReturn(completedStatus);
@@ -218,11 +222,11 @@ public class RestrictionServiceTest {
         restrictionService.acceptRestrictions(1L);
 
         // then
-        assertEquals(bannedStatus, restrictionTarget.getUser().getStatus());
+        assertEquals(bannedStatus.getStatusId(), restrictionTarget.getUser().getStatus().getStatusId());
         assertNull(restrictionTarget.getExpiresAt());
-        assertEquals(completedStatus, restrictionTarget.getStatus());
-        assertEquals(reportCompletedStatus, report1.getStatus());
-        assertEquals(blurredStatus, report1.getTransactionFeed().getStatus());
+        assertEquals(completedStatus.getStatusId(), restrictionTarget.getStatus().getStatusId());
+        assertEquals(reportCompletedStatus.getStatusId(), report1.getStatus().getStatusId());
+        assertEquals(blurredStatus.getStatusId(), report1.getTransactionFeed().getStatus().getStatusId());
         verify(transactionFeedRepository).saveAll(anyList());
     }
 
@@ -231,10 +235,11 @@ public class RestrictionServiceTest {
     void acceptRestrictions_Restriction_newUserAuthority_success() {
         // given
         Status pendingStatus = Status.builder().domain("RESTRICTION").code("PENDING").build();
-        Authority authority = Authority.builder().build();
+        Authority authority = Authority.builder().name("WRITE").build();
         ReflectionTestUtils.setField(authority, "authority_id", 1L);
 
         RestrictionType restrictionType = RestrictionType.builder()
+                .restrictionTypeId(1L)
                 .duration(7)
                 .authority(authority)
                 .build();
@@ -256,6 +261,7 @@ public class RestrictionServiceTest {
         when(statusManager.getStatus("REPORT", "COMPLETED")).thenReturn(reportCompletedStatus);
         when(statusManager.getStatus("FEED", "BLURRED")).thenReturn(blurredStatus);
         when(reportHistoryRepository.findByRestrictionTarget(restrictionTarget)).thenReturn(List.of(report1));
+        when(authorityRepository.findByNameIn(anyList())).thenReturn(List.of(authority));
 
         // when
         restrictionService.acceptRestrictions(1L);
@@ -274,8 +280,9 @@ public class RestrictionServiceTest {
     void acceptRestrictions_Restriction_extendUserAuthority_success() {
         // given
         Status pendingStatus = Status.builder().domain("RESTRICTION").code("PENDING").build();
-        Authority authority = Authority.builder().build();
+        Authority authority = Authority.builder().name("WRITE").build();
         RestrictionType restrictionType = RestrictionType.builder()
+                .restrictionTypeId(1L)
                 .duration(7)
                 .authority(authority)
                 .build();
@@ -305,6 +312,7 @@ public class RestrictionServiceTest {
         when(statusManager.getStatus("REPORT", "COMPLETED")).thenReturn(reportCompletedStatus);
         when(statusManager.getStatus("FEED", "BLURRED")).thenReturn(blurredStatus);
         when(reportHistoryRepository.findByRestrictionTarget(restrictionTarget)).thenReturn(List.of(report1));
+        when(authorityRepository.findByNameIn(List.of("WRITE"))).thenReturn(List.of(authority));
 
         // when
         restrictionService.acceptRestrictions(1L);
