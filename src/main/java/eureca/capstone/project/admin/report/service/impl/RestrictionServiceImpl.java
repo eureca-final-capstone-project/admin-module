@@ -72,22 +72,20 @@ public class RestrictionServiceImpl implements RestrictionService {
 
         User user = restrictionTarget.getUser();
         RestrictionType restrictionType = restrictionTarget.getRestrictionType();
-        Integer duration = restrictionTarget.getRestrictionType().getDuration();
+        Integer duration = restrictionType.getDuration();
 
         log.info("[acceptRestrictions] 제재대상 및 기간 조회. 사용자: {}, 제재타입: {}, 제재기간: {} (-1은 영구정지)", user.getUserId(), restrictionTarget.getRestrictionType().getContent(), duration);
 
         // 제재 만료일
-        LocalDateTime expiresAt;
+        LocalDateTime expiresAt = null;
 
         if (duration == -1) { // 영구정지일 경우 사용자 block
-            expiresAt = null;
             user.updateUserStatus(statusManager.getStatus("USER", "BANNED"));
             log.info("[acceptRestrictions] 영구정지 user 상태 변경: {}", user.getStatus().getCode());
         } else {
             List<Authority> authoritiesToRestrict = resolveAuthorities(restrictionType);
 
             LocalDateTime now = LocalDateTime.now();
-            LocalDateTime finalExpiresAt = null;
 
             // 제재해야 할 권한 순회하면서 권한제재 진행
             for (Authority authority : authoritiesToRestrict) {
@@ -115,32 +113,32 @@ public class RestrictionServiceImpl implements RestrictionService {
                 }
 
                 // 최종 저장할 만료일자 판별
-                if (finalExpiresAt == null || finalExpiresAt.isBefore(newExpireAt)) {
-                    finalExpiresAt = newExpireAt;
+                if (expiresAt == null || expiresAt.isBefore(newExpireAt)) {
+                    expiresAt = newExpireAt;
                 }
             }
-            expiresAt = finalExpiresAt;
-            restrictionTarget.updateExpiresAt(expiresAt);
-            restrictionTarget.updateStatus(statusManager.getStatus("RESTRICTION", "COMPLETED"));
-            log.info("[acceptRestrictions] 제재 완료. expiresAt: {}, status: {}", expiresAt, restrictionTarget.getStatus().getCode());
-
-            //제재와 연관된 신고 내역들의 상태를 '제재 완료'로 변경
-            Status reportCompletedStatus = statusManager.getStatus("REPORT", "COMPLETED");
-            List<ReportHistory> relatedReports = reportHistoryRepository.findByRestrictionTarget(restrictionTarget);
-            relatedReports.forEach(report -> report.updateStatus(reportCompletedStatus));
-            reportHistoryRepository.saveAll(relatedReports);
-            log.info("[acceptRestrictions] 연관된 신고 내역 {}건의 상태를 '제재 완료'로 변경했습니다.", relatedReports.size());
-
-            // 제재와 연관된 게시글의 상태를 BLURRED로 변경
-            Status blurredStatus = statusManager.getStatus(FEED, "BLURRED");
-            List<TransactionFeed> transactionFeedsToBlur = relatedReports.stream()
-                    .map(ReportHistory::getTransactionFeed)
-                    .distinct() // 중복 게시글 제거
-                    .toList();
-            transactionFeedsToBlur.forEach(feed -> feed.updateStatus(blurredStatus));
-            transactionFeedRepository.saveAll(transactionFeedsToBlur);
-            log.info("[acceptRestrictions] 연관된 게시글 {}건의 상태를 'BLURRED'로 변경했습니다.", transactionFeedsToBlur.size());
         }
+        restrictionTarget.updateExpiresAt(expiresAt);
+        restrictionTarget.updateStatus(completedStatus);
+        log.info("[acceptRestrictions] 제재 완료. expiresAt: {}, status: {}", expiresAt, restrictionTarget.getStatus().getCode());
+
+        //제재와 연관된 신고 내역들의 상태를 '제재 완료'로 변경
+        Status reportCompletedStatus = statusManager.getStatus("REPORT", "COMPLETED");
+        List<ReportHistory> relatedReports = reportHistoryRepository.findByRestrictionTarget(restrictionTarget);
+        relatedReports.forEach(report -> report.updateStatus(reportCompletedStatus));
+        reportHistoryRepository.saveAll(relatedReports);
+        log.info("[acceptRestrictions] 연관된 신고 내역 {}건의 상태를 '제재 완료'로 변경했습니다.", relatedReports.size());
+
+        // 제재와 연관된 게시글의 상태를 BLURRED로 변경
+        Status blurredStatus = statusManager.getStatus(FEED, "BLURRED");
+        List<TransactionFeed> transactionFeedsToBlur = relatedReports.stream()
+                .map(ReportHistory::getTransactionFeed)
+                .distinct() // 중복 게시글 제거
+                .toList();
+        transactionFeedsToBlur.forEach(feed -> feed.updateStatus(blurredStatus));
+        transactionFeedRepository.saveAll(transactionFeedsToBlur);
+        log.info("[acceptRestrictions] 연관된 게시글 {}건의 상태를 'BLURRED'로 변경했습니다.", transactionFeedsToBlur.size());
+
     }
 
     @Transactional
