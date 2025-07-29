@@ -17,6 +17,7 @@ import eureca.capstone.project.admin.report.entity.ReportType;
 import eureca.capstone.project.admin.report.entity.RestrictionTarget;
 import eureca.capstone.project.admin.report.entity.RestrictionType;
 import eureca.capstone.project.admin.report.repository.ReportHistoryRepository;
+import eureca.capstone.project.admin.report.repository.RestrictionAuthorityRepository;
 import eureca.capstone.project.admin.report.repository.RestrictionTargetRepository;
 import eureca.capstone.project.admin.report.repository.RestrictionTypeRepository;
 import eureca.capstone.project.admin.report.service.impl.RestrictionServiceImpl;
@@ -57,6 +58,9 @@ public class RestrictionServiceTest {
 
     @Mock
     private RestrictionTargetRepository restrictionTargetRepository;
+
+    @Mock
+    private RestrictionAuthorityRepository restrictionAuthorityRepository;
 
     @Mock
     private UserAuthorityRepository userAuthorityRepository;
@@ -241,7 +245,6 @@ public class RestrictionServiceTest {
         RestrictionType restrictionType = RestrictionType.builder()
                 .restrictionTypeId(1L)
                 .duration(7)
-                .authority(authority)
                 .build();
 
         RestrictionTarget restrictionTarget = RestrictionTarget.builder()
@@ -261,7 +264,7 @@ public class RestrictionServiceTest {
         when(statusManager.getStatus("REPORT", "COMPLETED")).thenReturn(reportCompletedStatus);
         when(statusManager.getStatus("FEED", "BLURRED")).thenReturn(blurredStatus);
         when(reportHistoryRepository.findByRestrictionTarget(restrictionTarget)).thenReturn(List.of(report1));
-        when(authorityRepository.findByNameIn(anyList())).thenReturn(List.of(authority));
+        when(restrictionAuthorityRepository.findAuthoritiesByRestrictionTypeId(1L)).thenReturn(List.of(authority));
 
         // when
         restrictionService.acceptRestrictions(1L);
@@ -284,7 +287,6 @@ public class RestrictionServiceTest {
         RestrictionType restrictionType = RestrictionType.builder()
                 .restrictionTypeId(1L)
                 .duration(7)
-                .authority(authority)
                 .build();
         ReflectionTestUtils.setField(authority, "authority_id", 1L);
 
@@ -312,7 +314,7 @@ public class RestrictionServiceTest {
         when(statusManager.getStatus("REPORT", "COMPLETED")).thenReturn(reportCompletedStatus);
         when(statusManager.getStatus("FEED", "BLURRED")).thenReturn(blurredStatus);
         when(reportHistoryRepository.findByRestrictionTarget(restrictionTarget)).thenReturn(List.of(report1));
-        when(authorityRepository.findByNameIn(List.of("WRITE"))).thenReturn(List.of(authority));
+        when(restrictionAuthorityRepository.findAuthoritiesByRestrictionTypeId(1L)).thenReturn(List.of(authority));
 
         // when
         restrictionService.acceptRestrictions(1L);

@@ -2,7 +2,6 @@ package eureca.capstone.project.admin.report.service.impl;
 
 import eureca.capstone.project.admin.auth.entity.Authority;
 import eureca.capstone.project.admin.auth.entity.UserAuthority;
-import eureca.capstone.project.admin.auth.repository.AuthorityRepository;
 import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
 import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.common.exception.custom.AlreadyProcessedRestrictionException;
@@ -14,15 +13,12 @@ import eureca.capstone.project.admin.report.entity.ReportHistory;
 import eureca.capstone.project.admin.report.entity.RestrictionTarget;
 import eureca.capstone.project.admin.report.entity.RestrictionType;
 import eureca.capstone.project.admin.report.repository.ReportHistoryRepository;
-import eureca.capstone.project.admin.report.repository.ReportTypeRepository;
+import eureca.capstone.project.admin.report.repository.RestrictionAuthorityRepository;
 import eureca.capstone.project.admin.report.repository.RestrictionTargetRepository;
-import eureca.capstone.project.admin.report.repository.RestrictionTypeRepository;
 import eureca.capstone.project.admin.report.service.RestrictionService;
-import eureca.capstone.project.admin.report.service.external.AIReviewService;
 import eureca.capstone.project.admin.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.admin.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.admin.user.entity.User;
-import eureca.capstone.project.admin.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,11 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import static eureca.capstone.project.admin.common.entity.StatusConst.FEED;
 import static eureca.capstone.project.admin.common.entity.StatusConst.RESTRICTION;
-import static eureca.capstone.project.admin.common.constant.RestrictionConst.*;
 
 @Slf4j
 @Service
@@ -45,10 +39,10 @@ import static eureca.capstone.project.admin.common.constant.RestrictionConst.*;
 public class RestrictionServiceImpl implements RestrictionService {
     private final ReportHistoryRepository reportHistoryRepository;
     private final RestrictionTargetRepository restrictionTargetRepository;
+    private final RestrictionAuthorityRepository restrictionAuthorityRepository;
     private final TransactionFeedRepository transactionFeedRepository;
     private final StatusManager statusManager;
     private final UserAuthorityRepository userAuthorityRepository;
-    private final AuthorityRepository authorityRepository;
 
     @Override
     public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode,String keyword, Pageable pageable) {
@@ -83,7 +77,9 @@ public class RestrictionServiceImpl implements RestrictionService {
             user.updateUserStatus(statusManager.getStatus("USER", "BANNED"));
             log.info("[acceptRestrictions] 영구정지 user 상태 변경: {}", user.getStatus().getCode());
         } else {
-            List<Authority> authoritiesToRestrict = resolveAuthorities(restrictionType);
+            // 제재해야 할 권한 리스트
+            List<Authority> authoritiesToRestrict =
+                    restrictionAuthorityRepository.findAuthoritiesByRestrictionTypeId(restrictionType.getRestrictionTypeId());
 
             LocalDateTime now = LocalDateTime.now();
 
@@ -176,15 +172,5 @@ public class RestrictionServiceImpl implements RestrictionService {
         log.info("[getRestrictionReportHistory] 제재와 연관된 신고내역 조회: 총 {} 건", response.size());
 
         return response;
-    }
-
-
-    // 제한해야 할 권한 리스트
-    private List<Authority> resolveAuthorities(RestrictionType restrictionType) {
-        List<String> authorities = RTYPE_TO_AUTHORITIES.getOrDefault(
-                restrictionType.getRestrictionTypeId(),
-                restrictionType.getAuthority() == null ? List.of() : List.of(restrictionType.getAuthority().getName()));
-
-        return authorityRepository.findByNameIn(authorities);
     }
 }
