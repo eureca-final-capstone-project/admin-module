@@ -55,7 +55,8 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .from(user)
                 .leftJoin(reportHistory).on(reportHistory.seller.eq(user)
                                         .and(reportHistory.status.statusId.in(26, 28, 41)))
-                .where(searchCondition(keyword))
+                .where(searchCondition(keyword),
+                        user.status.statusId.in(12,13))
                 .groupBy(user.userId)
                 .orderBy(user.createdAt.desc())
                 .offset(pageable.getOffset())
