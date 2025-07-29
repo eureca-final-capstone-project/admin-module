@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "restriction_authority")
+@Table(name = "restriction_type_authority")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RestrictionAuthority {
