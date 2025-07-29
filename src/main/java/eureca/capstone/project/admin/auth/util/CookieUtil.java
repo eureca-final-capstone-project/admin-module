@@ -22,7 +22,7 @@ public class CookieUtil {
                 .path("/")
                 .maxAge(REFRESH_TOKEN_MAX_AGE_SEC)
                 .sameSite("None")
-                .domain("visiblego.com")
+                .domain("ureca-final.com")
                 .build();
 
         httpServletResponse.addHeader("Set-Cookie", refreshCookie.toString());
