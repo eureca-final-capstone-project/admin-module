@@ -25,16 +25,11 @@ public class RestrictionType {
     @Column(nullable = false)
     private Integer duration;
 
-    @JoinColumn(name = "authority_id")
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Authority authority;
-
     @Builder
-    public RestrictionType(Long restrictionTypeId, String content, Integer duration, Authority authority) {
+    public RestrictionType(Long restrictionTypeId, String content, Integer duration) {
         this.restrictionTypeId = restrictionTypeId;
         this.content = content;
         this.duration = duration;
-        this.authority = authority;
     }
 }
 

@@ -178,7 +178,6 @@ public class ReportServiceImpl implements ReportService {
         long violationCount = reportHistoryRepository
                 .countReportToRestrict(seller, reportType, acceptedStatuses);
 
-        RestrictionType restrictionType;
         log.info("[checkAndApplyRestriction] 피신고 수={}", violationCount);
 
         switch (reportType.getReportTypeId().intValue()) {
@@ -195,12 +194,12 @@ public class ReportServiceImpl implements ReportService {
             case OBSCENE -> applyRestriction(seller, reportType, RES_FOREVER, acceptedStatuses); // 음란 내용 포함
             case EXTERNAL_CHANNEL -> { // 외부 채널 유도
                 if (violationCount >= EXTERNAL_CHANNEL_CNT) {
-                    applyRestriction(seller, reportType, RES_TRANSACTION, acceptedStatuses);
+                    applyRestriction(seller, reportType, RES_USE_SERVICE, acceptedStatuses);
                 }
             }
             case SNIPING -> { // 비방/저격 포함
                 if (violationCount >= SNIPING_CNT) {
-                    applyRestriction(seller, reportType, RES_WRITE_7DAYS, acceptedStatuses);
+                    applyRestriction(seller, reportType, RES_TRANSACTION, acceptedStatuses);
                 }
             }
         }
