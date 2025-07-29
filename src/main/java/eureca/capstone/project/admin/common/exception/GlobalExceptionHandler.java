@@ -91,4 +91,10 @@ public class GlobalExceptionHandler {
         return BaseResponseDto.fail(ErrorCode.SALES_TYPE_NOT_FOUND);
     }
 
+    @ExceptionHandler(RefreshTokenMisMatchException.class)
+    public BaseResponseDto<ErrorResponseDto> handleSalesTypeNotFoundException(RefreshTokenMisMatchException e) {
+        log.error(e.getMessage(), e);
+        return BaseResponseDto.fail(ErrorCode.SALES_TYPE_NOT_FOUND);
+    }
+
 }

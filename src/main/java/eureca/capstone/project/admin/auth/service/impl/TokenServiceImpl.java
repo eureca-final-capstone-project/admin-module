@@ -5,7 +5,9 @@ import eureca.capstone.project.admin.auth.service.TokenService;
 import eureca.capstone.project.admin.auth.util.CookieUtil;
 import eureca.capstone.project.admin.auth.util.JwtUtil;
 import eureca.capstone.project.admin.common.constant.RedisConstant;
+import eureca.capstone.project.admin.common.exception.custom.RefreshTokenMisMatchException;
 import eureca.capstone.project.admin.common.service.RedisService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Set;
+
+import static eureca.capstone.project.admin.common.constant.RedisConstant.*;
 
 @Slf4j
 @Service
@@ -42,9 +46,19 @@ public class TokenServiceImpl implements TokenService {
 
         // Refresh 토큰 Response 헤더에 할당 및 레디스에 저장 (14일 보관)
         cookieUtil.createRefreshTokenCookie(refreshToken, httpServletResponse);
-        redisService.setValue(RedisConstant.REDIS_REFRESH_TOKEN + userId, refreshToken, Duration.ofDays(14));
+        redisService.setValue(REDIS_REFRESH_TOKEN + userId, refreshToken, Duration.ofDays(14));
 
         // return
         return accessToken;
+    }
+
+    @Override
+    public String reGenerateToken(CustomUserDetailsDto customUserDetailsDto, HttpServletResponse httpServletResponse) {
+        if (!redisService.hasKey(REDIS_REFRESH_TOKEN + customUserDetailsDto.getUserId())) {
+            log.error("redis 에 해당 리프레쉬 토큰 값이 존재하지 않습니다.");
+            throw new RefreshTokenMisMatchException();
+        }
+        // 토큰 재 발행
+        return generateToken(customUserDetailsDto, httpServletResponse);
     }
 }
