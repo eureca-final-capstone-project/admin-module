@@ -8,6 +8,7 @@ public final class RestrictionConst {
     public static final Long RES_FOREVER = 2L;
     public static final Long RES_TRANSACTION = 3L;
     public static final Long RES_WRITE_1DAYS = 4L;
+    public static final Long RES_USE_SERVICE = 5L;
 
     // 제재 타입에 해당하는 권한리스트
     public static final Map<Long, List<String>> RTYPE_TO_AUTHORITIES = Map.of(

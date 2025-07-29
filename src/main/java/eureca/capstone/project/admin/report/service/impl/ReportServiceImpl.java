@@ -178,7 +178,6 @@ public class ReportServiceImpl implements ReportService {
         long violationCount = reportHistoryRepository
                 .countReportToRestrict(seller, reportType, acceptedStatuses);
 
-        RestrictionType restrictionType;
         log.info("[checkAndApplyRestriction] 피신고 수={}", violationCount);
 
         switch (reportType.getReportTypeId().intValue()) {
