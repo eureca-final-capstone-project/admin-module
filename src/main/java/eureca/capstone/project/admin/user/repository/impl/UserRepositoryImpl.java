@@ -68,7 +68,8 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         JPAQuery<Long> count = jpaQueryFactory
                 .select(user.countDistinct())
                 .from(user)
-                .where(searchCondition(keyword));
+                .where(searchCondition(keyword),
+                        user.status.statusId.in(12,13));
 
         return PageableExecutionUtils.getPage(userList, pageable, count::fetchOne);
     }
