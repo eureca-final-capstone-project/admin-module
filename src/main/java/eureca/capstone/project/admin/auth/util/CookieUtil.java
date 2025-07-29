@@ -32,9 +32,13 @@ public class CookieUtil {
     }
 
     public String extractTokenFromCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) return null;
+        if (request.getCookies() == null) {
+            log.info("request.getCookies() is null");
+            return null;
+        }
         for (Cookie cookie : request.getCookies()) {
             if (cookie.getName().equals(REFRESH_TOKEN_COOKIE_NAME)) {
+                log.info("cookie.getName : {}", REFRESH_TOKEN_COOKIE_NAME);
                 return cookie.getValue();
             }
         }
