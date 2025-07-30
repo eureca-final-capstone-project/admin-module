@@ -98,9 +98,6 @@ public class ReportController {
         return BaseResponseDto.success(reportService.getReportDetail(reportId));
     }
 
-
-
-
     @Operation(summary = "게시글 신고 접수", description = """
             ## 게시글을 신고하면 AI가 1차 검토 후 자동으로 처리 상태를 변경합니다.
             한 사용자의 모든 게시글 중 한번만 신고가 가능합니다. => DUPLICATE_REPORT

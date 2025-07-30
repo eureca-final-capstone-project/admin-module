@@ -183,7 +183,7 @@ class ReportServiceTest {
         // then
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        assertEquals("검수 대기중", result.getContent().get(0).getStatus());
+        assertEquals("PENDING", result.getContent().get(0).getStatus());
         verify(reportHistoryRepository).findByCriteria(statusCode, keyword, pageable);
     }
 
