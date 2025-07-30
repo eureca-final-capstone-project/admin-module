@@ -114,6 +114,10 @@ public class ReportServiceImpl implements ReportService {
                 .orElseThrow(TransactionFeedNotFoundException::new);
         User seller = transactionFeed.getUser();
 
+        if(seller.getUserId().equals(userId)){
+            throw new SelfReportNotAllowedException();
+        }
+
         if(reportHistoryRepository.existsByUserAndSeller(user, seller)){
             throw new DuplicateReportException();
         }

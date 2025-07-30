@@ -17,6 +17,8 @@ public class MyReportResponseDto {
     private Long transactionFeedId;
     @Schema(description = "신고 대상 게시글 제목", example = "판매 게시글 제목")
     private String title;
+    @Schema(description = "판매 유형", example = "일반판매")
+    private String salesType;
     @Schema(description = "판매 데이터 양 (MB)", example = "1000")
     private Long salesDataAmount;
     @Schema(description = "신고 유형", example = "욕설 및 비속어 포함")
