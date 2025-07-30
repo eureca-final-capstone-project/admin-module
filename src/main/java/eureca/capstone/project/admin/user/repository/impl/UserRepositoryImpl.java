@@ -194,6 +194,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .select(Projections.constructor(MyReportResponseDto.class,
                         transactionFeed.transactionFeedId,
                         transactionFeed.title,
+                        transactionFeed.salesType.name,
                         transactionFeed.salesDataAmount,
                         reportHistory.reportType.explanation,
                         reportHistory.createdAt,
