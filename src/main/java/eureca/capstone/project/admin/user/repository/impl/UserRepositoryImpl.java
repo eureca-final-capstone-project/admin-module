@@ -9,18 +9,21 @@ import eureca.capstone.project.admin.user.dto.UserInformationDto;
 import eureca.capstone.project.admin.user.dto.response.MyReportResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserReportResponseDto;
 import eureca.capstone.project.admin.user.dto.response.UserResponseDto;
+import eureca.capstone.project.admin.user.entity.User;
 import eureca.capstone.project.admin.user.repository.custom.UserRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static eureca.capstone.project.admin.user.entity.QUser.user;
 import static eureca.capstone.project.admin.report.entity.QReportHistory.reportHistory;
@@ -36,42 +39,68 @@ import static eureca.capstone.project.admin.auth.entity.QAuthority.authority;
 public class UserRepositoryImpl implements UserRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
 
-    // 사용자 목록 조회
     @Override
     public Page<UserResponseDto> getUserList(String keyword, Pageable pageable) {
-        log.info("[getUserList] 시작: keyword={}, pageable={}", keyword, pageable);
-
-        List<UserResponseDto> userList = jpaQueryFactory
-                .select(Projections.constructor(UserResponseDto.class,
-                        user.userId,
-                        user.email,
-                        user.nickname,
-                        user.telecomCompany.name,
-                        user.phoneNumber,
-                        user.createdAt,
-                        user.status.description,
-                        reportHistory.reportHistoryId.count()
-                        ))
+        // 1단계: 가장 단순한 쿼리로 페이징을 적용하여 '사용자 ID 목록'만 조회
+        List<Long> ids = jpaQueryFactory
+                .select(user.userId)
                 .from(user)
-                .leftJoin(reportHistory).on(reportHistory.seller.eq(user)
-                                        .and(reportHistory.status.statusId.in(26, 28, 41)))
                 .where(searchCondition(keyword),
-                        user.status.statusId.in(12,13))
-                .groupBy(user.userId)
-                .orderBy(user.createdAt.desc())
+                        user.status.statusId.in(12, 13)) // 활성, 차단 사용자
+                .orderBy(user.createdAt.desc(), user.userId.asc()) // 정렬 순서 보장
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        log.info("[getUserList] 조회 쿼리 실행. size: {}", userList.size());
+        // 조회된 ID가 없으면 빈 페이지를 반환하고 즉시 종료
+        if (ids.isEmpty()) {
+            return Page.empty(pageable);
+        }
 
-        JPAQuery<Long> count = jpaQueryFactory
-                .select(user.countDistinct())
+        // 2단계: 위에서 얻은 ID 목록을 사용하여, 신고 횟수를 '별도의 쿼리'로 한 번에 조회
+        Map<Long, Long> reportCountMap = jpaQueryFactory
+                .select(reportHistory.seller.userId, reportHistory.reportHistoryId.count())
+                .from(reportHistory)
+                .where(reportHistory.seller.userId.in(ids)
+                        .and(reportHistory.status.statusId.in(26, 28, 41))) // 유효한 신고 상태
+                .groupBy(reportHistory.seller.userId)
+                .fetch()
+                .stream()
+                .collect(Collectors.toMap(
+                        tuple -> tuple.get(reportHistory.seller.userId),
+                        tuple -> tuple.get(reportHistory.reportHistoryId.count())
+                ));
+
+        // 3단계: ID 목록을 사용해 사용자 상세 정보를 조회
+        List<User> users = jpaQueryFactory
+                .selectFrom(user)
+                .where(user.userId.in(ids))
+                .orderBy(user.createdAt.desc(), user.userId.asc()) // 정렬 순서 보장
+                .fetch();
+
+        // 4단계: 사용자 정보와 신고 횟수 정보를 조합하여 최종 DTO 리스트 생성
+        List<UserResponseDto> content = users.stream()
+                .map(u -> new UserResponseDto(
+                        u.getUserId(),
+                        u.getEmail(),
+                        u.getNickname(),
+                        u.getTelecomCompany() != null ? u.getTelecomCompany().getName() : null,
+                        u.getPhoneNumber(),
+                        u.getCreatedAt(),
+                        u.getStatus().getDescription(),
+                        reportCountMap.getOrDefault(u.getUserId(), 0L) // 신고가 없으면 0으로 설정
+                ))
+                .toList();
+
+        // 5단계: 전체 개수를 세는 Count 쿼리 실행
+        JPAQuery<Long> countQuery = jpaQueryFactory
+                .select(user.count())
                 .from(user)
                 .where(searchCondition(keyword),
-                        user.status.statusId.in(12,13));
+                        user.status.statusId.in(12, 13));
 
-        return PageableExecutionUtils.getPage(userList, pageable, count::fetchOne);
+        // 최종적으로 Page 객체를 만들어 반환
+        return new PageImpl<>(content, pageable, countQuery.fetchOne());
     }
 
     @Override

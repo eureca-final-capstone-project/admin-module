@@ -26,7 +26,7 @@ public class QSalesType extends EntityPathBase<SalesType> {
 
     public final StringPath name = createString("name");
 
-    public final NumberPath<Long> SalesTypeId = createNumber("SalesTypeId", Long.class);
+    public final NumberPath<Long> salesTypeId = createNumber("salesTypeId", Long.class);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> updatedAt = _super.updatedAt;

@@ -1,15 +1,12 @@
 package eureca.capstone.project.admin.user.service.Impl;
 
-import eureca.capstone.project.admin.common.exception.custom.RestrictionTargetNotFoundException;
 import eureca.capstone.project.admin.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.admin.common.util.StatusManager;
-import eureca.capstone.project.admin.report.entity.RestrictionTarget;
 import eureca.capstone.project.admin.user.dto.request.UpdateUserRequestDto;
 import eureca.capstone.project.admin.user.dto.response.*;
 import eureca.capstone.project.admin.user.entity.User;
 import eureca.capstone.project.admin.user.repository.UserRepository;
 import eureca.capstone.project.admin.user.service.UserService;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
