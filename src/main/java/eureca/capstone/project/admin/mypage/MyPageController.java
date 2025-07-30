@@ -7,6 +7,8 @@ import eureca.capstone.project.admin.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -31,9 +33,10 @@ public class MyPageController {
     * `ROLE_USER`(사용자 로그인 필요), `ROLE_ADMIN`
     """)
     @GetMapping("/reports")
-    public BaseResponseDto<List<MyReportResponseDto>> getMyReports(@AuthenticationPrincipal CustomUserDetailsDto userDetailsDto) {
+    public BaseResponseDto<Page<MyReportResponseDto>> getMyReports(@AuthenticationPrincipal CustomUserDetailsDto userDetailsDto,
+                                                                   Pageable pageable) {
         Long currentUserId = userDetailsDto.getUserId();
-        List<MyReportResponseDto> myReportList = userService.getMyReportList(currentUserId);
+        Page<MyReportResponseDto> myReportList = userService.getMyReportList(currentUserId, pageable);
         return BaseResponseDto.success(myReportList);
     }
 }

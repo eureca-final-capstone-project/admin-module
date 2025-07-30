@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
@@ -189,8 +190,9 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     }
 
     @Override
-    public List<MyReportResponseDto> findMyReportList(Long userId) {
-        return jpaQueryFactory
+    public Page<MyReportResponseDto> findMyReportList(Long userId, Pageable pageable) {
+        // 1. 데이터 목록 조회 쿼리 (페이징 적용)
+        List<MyReportResponseDto> content = jpaQueryFactory
                 .select(Projections.constructor(MyReportResponseDto.class,
                         transactionFeed.transactionFeedId,
                         transactionFeed.title,
@@ -206,6 +208,18 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .innerJoin(reportHistory.transactionFeed, transactionFeed)
                 .where(user.userId.eq(userId))
                 .orderBy(reportHistory.createdAt.desc())
+                .offset(pageable.getOffset()) // offset 적용
+                .limit(pageable.getPageSize())   // limit 적용
                 .fetch();
+
+        // 2. 전체 개수 조회 쿼리
+        JPAQuery<Long> countQuery = jpaQueryFactory
+                .select(reportHistory.count())
+                .from(reportHistory)
+                .innerJoin(reportHistory.user, user)
+                .where(user.userId.eq(userId));
+
+        // 3. Page 객체로 변환하여 반환
+        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }
 }

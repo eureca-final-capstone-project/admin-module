@@ -73,9 +73,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<MyReportResponseDto> getMyReportList(Long userId) {
-        List<MyReportResponseDto> response = userRepository.findMyReportList(userId);
-        log.info("[getMyReportList] 사용자가 신고한 신고내역 조회: 총 {} 건", response.size());
+    public Page<MyReportResponseDto> getMyReportList(Long userId, Pageable pageable) {
+        Page<MyReportResponseDto> response = userRepository.findMyReportList(userId, pageable);
+        log.info("[getMyReportList] 사용자가 신고한 신고내역 조회: 총 {} 건", response.getTotalElements());
         return response;
     }
 }
