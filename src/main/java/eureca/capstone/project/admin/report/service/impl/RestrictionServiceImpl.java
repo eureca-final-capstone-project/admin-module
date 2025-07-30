@@ -6,6 +6,7 @@ import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
 import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.common.exception.custom.AlreadyProcessedRestrictionException;
 import eureca.capstone.project.admin.common.exception.custom.RestrictionTargetNotFoundException;
+import eureca.capstone.project.admin.common.service.RedisService;
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.report.dto.response.RestrictionDto;
 import eureca.capstone.project.admin.report.dto.response.RestrictionReportResponseDto;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static eureca.capstone.project.admin.common.entity.StatusConst.FEED;
 import static eureca.capstone.project.admin.common.entity.StatusConst.RESTRICTION;
@@ -43,6 +45,7 @@ public class RestrictionServiceImpl implements RestrictionService {
     private final TransactionFeedRepository transactionFeedRepository;
     private final StatusManager statusManager;
     private final UserAuthorityRepository userAuthorityRepository;
+    private final RedisService redisService;
 
     @Override
     public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode,String keyword, Pageable pageable) {
@@ -135,6 +138,13 @@ public class RestrictionServiceImpl implements RestrictionService {
         transactionFeedRepository.saveAll(transactionFeedsToBlur);
         log.info("[acceptRestrictions] 연관된 게시글 {}건의 상태를 'BLURRED'로 변경했습니다.", transactionFeedsToBlur.size());
 
+        try {
+            String key = "BlackListUser:" + user.getUserId();
+            redisService.setValue(key, "restricted", 1, TimeUnit.HOURS);
+            log.info("[acceptRestrictions] 사용자 ID {}를 Redis 블랙리스트에 추가했습니다. (TTL: 1시간)", user.getUserId());
+        } catch (Exception e) {
+            log.error("[acceptRestrictions] Redis에 블랙리스트 사용자 저장 중 오류 발생: {}", e.getMessage());
+        }
     }
 
     @Transactional
