@@ -35,7 +35,7 @@ public class ReportHistoryDto {
                 .reportHistoryId(reportHistory.getReportHistoryId())
                 .reportType(reportHistory.getReportType().getType())
                 .reason(reportHistory.getReason())
-                .status(reportHistory.getStatus().getDescription())
+                .status(reportHistory.getStatus().getCode())
                 .reportedAt(reportHistory.getCreatedAt())
                 .reporterId(reportHistory.getUser().getUserId())
                 .reporterEmail(reportHistory.getUser().getEmail())
