@@ -197,7 +197,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                         transactionFeed.salesDataAmount,
                         reportHistory.reportType.explanation,
                         reportHistory.createdAt,
-                        reportHistory.status.description,
+                        reportHistory.status.code,
                         reportHistory.reason
                 ))
                 .from(reportHistory)
