@@ -66,7 +66,7 @@ public class ReportHistoryRepositoryImpl implements ReportHistoryRepositoryCusto
         ReportDetailResponseDto reportDetail = jpaQueryFactory
                 .select(Projections.constructor(ReportDetailResponseDto.class,
                         reportHistory.reportHistoryId,
-                        reportHistory.status.description,
+                        reportHistory.status.code,
                         reporter.email,
                         reportHistory.createdAt,
                         reportHistory.reportType.type,
