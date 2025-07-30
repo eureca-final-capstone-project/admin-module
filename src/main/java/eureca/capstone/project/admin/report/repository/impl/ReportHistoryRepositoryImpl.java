@@ -100,7 +100,7 @@ public class ReportHistoryRepositoryImpl implements ReportHistoryRepositoryCusto
                         reportHistory.reportType.explanation,
                         transactionFeed.content,
                         reportHistory.createdAt,
-                        reportHistory.status.description
+                        reportHistory.status.code
                         ))
                 .from(reportHistory)
                 .join(reportHistory.transactionFeed, transactionFeed)
