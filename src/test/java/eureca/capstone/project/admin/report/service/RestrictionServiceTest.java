@@ -172,7 +172,7 @@ public class RestrictionServiceTest {
         // then
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        assertEquals("제재 대기중", result.getContent().get(0).getStatus());
+        assertEquals("PENDING", result.getContent().get(0).getStatus());
         verify(restrictionTargetRepository).findByCriteria(statusCode,keyword, pageable);
     }
 
