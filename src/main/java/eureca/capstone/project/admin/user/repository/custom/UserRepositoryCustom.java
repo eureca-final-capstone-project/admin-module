@@ -13,5 +13,5 @@ public interface UserRepositoryCustom {
     Page<UserResponseDto> getUserList(String keyword, Pageable pageable);
     List<UserReportResponseDto> getUserReportList(Long userId);
     UserInformationDto findAdminInformation(String email);
-    List<MyReportResponseDto> findMyReportList(Long userId);
+    Page<MyReportResponseDto> findMyReportList(Long userId, Pageable pageable);
 }
