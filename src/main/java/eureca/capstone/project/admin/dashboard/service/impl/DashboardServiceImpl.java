@@ -3,6 +3,7 @@ package eureca.capstone.project.admin.dashboard.service.impl;
 
 import eureca.capstone.project.admin.common.entity.Status;
 import eureca.capstone.project.admin.common.exception.custom.SalesTypeNotFoundException;
+import eureca.capstone.project.admin.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.dashboard.dto.response.*;
 import eureca.capstone.project.admin.dashboard.service.DashboardService;
@@ -13,6 +14,7 @@ import eureca.capstone.project.admin.market_statistic.repository.TransactionAmou
 import eureca.capstone.project.admin.report.repository.ReportHistoryRepository;
 import eureca.capstone.project.admin.transaction_feed.entity.SalesType;
 import eureca.capstone.project.admin.transaction_feed.repository.SalesTypeRepository;
+import eureca.capstone.project.admin.user.entity.User;
 import eureca.capstone.project.admin.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -189,4 +191,13 @@ public class DashboardServiceImpl implements DashboardService {
         return result;
     }
 
+    @Override
+    public AdminEmailResponseDto getAdminEmail(Long userId) {
+        User admin = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+        
+        return AdminEmailResponseDto.builder()
+                .email(admin.getEmail())
+                .build();
+    }
 }

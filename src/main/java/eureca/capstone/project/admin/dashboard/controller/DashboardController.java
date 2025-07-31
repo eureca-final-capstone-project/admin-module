@@ -1,12 +1,15 @@
 package eureca.capstone.project.admin.dashboard.controller;
 
+import eureca.capstone.project.admin.auth.dto.common.CustomUserDetailsDto;
 import eureca.capstone.project.admin.common.dto.base.BaseResponseDto;
+import eureca.capstone.project.admin.dashboard.dto.response.AdminEmailResponseDto;
 import eureca.capstone.project.admin.dashboard.dto.response.DashboardResponseDto;
 import eureca.capstone.project.admin.dashboard.dto.response.TransactionVolumeStatDto;
 import eureca.capstone.project.admin.dashboard.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -89,4 +92,13 @@ public class DashboardController {
             @RequestParam(value="salesType", defaultValue="일반 판매") String salesType) {
         return BaseResponseDto.success(dashboardService.transactionVolumeStatData(salesType));
     }
+
+    @Operation(summary = "로그인 한 사용자 이메일 주소 반환(로그인 필요)")
+    @GetMapping("/email")
+    public BaseResponseDto<AdminEmailResponseDto> getAdminEmail(
+            @AuthenticationPrincipal CustomUserDetailsDto userDetailsDto
+    ){
+        return BaseResponseDto.success(dashboardService.getAdminEmail(userDetailsDto.getUserId()));
+    }
+
 }
