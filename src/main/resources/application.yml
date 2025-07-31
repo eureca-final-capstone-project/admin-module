@@ -23,6 +23,8 @@ spring:
       host: 13.124.223.23
       port: 6379
       password: ureca!#%!#
+  elasticsearch:
+    uris: http://13.124.136.141:9200
 
 springdoc:
   packages-to-scan: eureca.capstone.project.admin
