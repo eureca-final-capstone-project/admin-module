@@ -17,8 +17,10 @@ import eureca.capstone.project.admin.report.repository.ReportHistoryRepository;
 import eureca.capstone.project.admin.report.repository.RestrictionAuthorityRepository;
 import eureca.capstone.project.admin.report.repository.RestrictionTargetRepository;
 import eureca.capstone.project.admin.report.service.RestrictionService;
+import eureca.capstone.project.admin.transaction_feed.document.TransactionFeedDocument;
 import eureca.capstone.project.admin.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.admin.transaction_feed.repository.TransactionFeedRepository;
+import eureca.capstone.project.admin.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.admin.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +47,7 @@ public class RestrictionServiceImpl implements RestrictionService {
     private final TransactionFeedRepository transactionFeedRepository;
     private final StatusManager statusManager;
     private final UserAuthorityRepository userAuthorityRepository;
+    private final TransactionFeedSearchRepository transactionFeedSearchRepository;
     private final RedisService redisService;
 
     @Override
@@ -137,6 +140,16 @@ public class RestrictionServiceImpl implements RestrictionService {
         transactionFeedsToBlur.forEach(feed -> feed.updateStatus(blurredStatus));
         transactionFeedRepository.saveAll(transactionFeedsToBlur);
         log.info("[acceptRestrictions] 연관된 게시글 {}건의 상태를 'BLURRED'로 변경했습니다.", transactionFeedsToBlur.size());
+
+        try {
+            List<TransactionFeedDocument> documentsToUpdate = transactionFeedsToBlur.stream()
+                    .map(TransactionFeedDocument::fromEntity) // TransactionFeed 엔티티를 Document로 변환
+                    .toList();
+            transactionFeedSearchRepository.saveAll(documentsToUpdate);
+            log.info("[acceptRestrictions] Elasticsearch의 게시글 문서 {}건을 동기화(BLURRED)했습니다.", documentsToUpdate.size());
+        } catch (Exception e) {
+            log.error("[acceptRestrictions] Elasticsearch 동기화 중 오류 발생: {}", e.getMessage());
+        }
 
         try {
             String key = "BlackListUser:" + user.getUserId();
