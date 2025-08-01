@@ -48,6 +48,8 @@ public class AuthController {
         );
         log.info("authentication: {}", authentication);
 
+        CustomUserDetailsDto customUserDetailsDto = (CustomUserDetailsDto) authentication.getPrincipal();
+
         String accessToken = tokenService.generateToken(
                 (CustomUserDetailsDto) authentication.getPrincipal(),
                 httpServletResponse
@@ -55,6 +57,7 @@ public class AuthController {
 
         LoginResponseDto loginResponseDto = LoginResponseDto.builder()
                 .accessToken(accessToken)
+                .userId(customUserDetailsDto.getUserId())
                 .build();
         BaseResponseDto<LoginResponseDto> success = BaseResponseDto.success(loginResponseDto);
         log.info("success: {}", success);
