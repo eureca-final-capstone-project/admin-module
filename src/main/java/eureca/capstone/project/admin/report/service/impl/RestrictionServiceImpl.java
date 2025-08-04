@@ -4,8 +4,10 @@ import eureca.capstone.project.admin.auth.entity.Authority;
 import eureca.capstone.project.admin.auth.entity.UserAuthority;
 import eureca.capstone.project.admin.auth.repository.UserAuthorityRepository;
 import eureca.capstone.project.admin.common.entity.Status;
+import eureca.capstone.project.admin.common.exception.code.ErrorCode;
 import eureca.capstone.project.admin.common.exception.custom.AlreadyProcessedRestrictionException;
 import eureca.capstone.project.admin.common.exception.custom.RestrictionTargetNotFoundException;
+import eureca.capstone.project.admin.common.exception.custom.UserNotFoundException;
 import eureca.capstone.project.admin.common.service.RedisService;
 import eureca.capstone.project.admin.common.util.StatusManager;
 import eureca.capstone.project.admin.report.dto.response.RestrictionDto;
@@ -22,6 +24,8 @@ import eureca.capstone.project.admin.transaction_feed.entity.TransactionFeed;
 import eureca.capstone.project.admin.transaction_feed.repository.TransactionFeedRepository;
 import eureca.capstone.project.admin.transaction_feed.repository.TransactionFeedSearchRepository;
 import eureca.capstone.project.admin.user.entity.User;
+import eureca.capstone.project.admin.user.entity.UserData;
+import eureca.capstone.project.admin.user.repository.UserDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static eureca.capstone.project.admin.common.entity.StatusConst.FEED;
@@ -49,6 +54,7 @@ public class RestrictionServiceImpl implements RestrictionService {
     private final UserAuthorityRepository userAuthorityRepository;
     private final TransactionFeedSearchRepository transactionFeedSearchRepository;
     private final RedisService redisService;
+    private final UserDataRepository userDataRepository;
 
     @Override
     public Page<RestrictionDto> getRestrictionListByStatusCode(String statusCode,String keyword, Pageable pageable) {
@@ -71,6 +77,7 @@ public class RestrictionServiceImpl implements RestrictionService {
         }
 
         User user = restrictionTarget.getUser();
+        Long userId = user.getUserId();
         RestrictionType restrictionType = restrictionTarget.getRestrictionType();
         Integer duration = restrictionType.getDuration();
 
@@ -140,6 +147,17 @@ public class RestrictionServiceImpl implements RestrictionService {
         transactionFeedsToBlur.forEach(feed -> feed.updateStatus(blurredStatus));
         transactionFeedRepository.saveAll(transactionFeedsToBlur);
         log.info("[acceptRestrictions] 연관된 게시글 {}건의 상태를 'BLURRED'로 변경했습니다.", transactionFeedsToBlur.size());
+
+        // 블러처리된 게시글은 보이지 않으므로 판매도 안됨. 그러므로 판매가능 데이터를 유저에게 다시 돌려줌
+        UserData userData = userDataRepository.findByUserId(userId).orElseThrow(UserNotFoundException::new);
+        long restoredDataAmount = transactionFeedsToBlur.stream()
+                .map(TransactionFeed::getSalesDataAmount)
+                .filter(Objects::nonNull)
+                .mapToLong(Long::longValue)
+                .sum();
+
+        userData.addSellableData(restoredDataAmount);
+        log.info("[acceptRestrictions] 제재된 게시글들의 판매 데이터 {}만큼 유저에게 환불 처리함.", restoredDataAmount);
 
         try {
             List<TransactionFeedDocument> documentsToUpdate = transactionFeedsToBlur.stream()
