@@ -224,7 +224,7 @@ public class RestrictionServiceTest {
         when(reportHistoryRepository.findByRestrictionTarget(restrictionTarget)).thenReturn(List.of(report1));
 
         // [수정] UserDataRepository에 대한 Mock 설정 추가
-        UserData mockUserData = new UserData();
+        UserData mockUserData = UserData.builder().sellableDataMb(100L).userId(user1.getUserId()).build();
         when(userDataRepository.findByUserId(user1.getUserId())).thenReturn(Optional.of(mockUserData));
 
         // when
@@ -275,7 +275,7 @@ public class RestrictionServiceTest {
         when(restrictionAuthorityRepository.findAuthoritiesByRestrictionTypeId(1L)).thenReturn(List.of(authority));
 
         // [수정] UserDataRepository에 대한 Mock 설정 추가
-        UserData mockUserData = new UserData();
+        UserData mockUserData = UserData.builder().sellableDataMb(100L).userId(user1.getUserId()).build();
         when(userDataRepository.findByUserId(user1.getUserId())).thenReturn(Optional.of(mockUserData));
 
         // when
@@ -329,7 +329,7 @@ public class RestrictionServiceTest {
         when(restrictionAuthorityRepository.findAuthoritiesByRestrictionTypeId(1L)).thenReturn(List.of(authority));
 
         // [수정] UserDataRepository에 대한 Mock 설정 추가
-        UserData mockUserData = new UserData();
+        UserData mockUserData = UserData.builder().sellableDataMb(100L).userId(user1.getUserId()).build();
         when(userDataRepository.findByUserId(user1.getUserId())).thenReturn(Optional.of(mockUserData));
 
         // when
